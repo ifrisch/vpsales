@@ -85,7 +85,7 @@ st.markdown(
 st.markdown("<h1>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = r"C:\\Users\\Isaac\\Downloads\\leaderboardexport.xlsx"
+excel_path = "leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
