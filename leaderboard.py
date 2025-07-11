@@ -64,7 +64,7 @@ st.markdown(
 )
 
 # --- LOGO ---
-logo_path = logo2.png"
+logo_path = "logo2.png"
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
