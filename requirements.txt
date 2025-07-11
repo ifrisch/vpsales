@@ -4,4 +4,4 @@ openpyxl
 pillow
 fuzzywuzzy
 python-Levenshtein
-st-aggrid
+streamlit-aggrid
