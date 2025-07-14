@@ -49,6 +49,15 @@ st.markdown("""
         div[data-testid="stImage"] img {
             max-width: 280px !important;
             width: 90% !important;
+            margin: 0 auto !important;
+            display: block !important;
+        }
+        div[data-testid="stImage"] {
+            text-align: center !important;
+        }
+        div[data-testid="stImage"] > div {
+            text-align: center !important;
+            margin: 0 auto !important;
         }
         .block-container {
             padding-left: 1rem !important;
