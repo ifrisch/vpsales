@@ -96,7 +96,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- TITLE ---
-st.markdown("<h1 style='margin-top: -7rem; margin-bottom: -10rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='margin-top: -15rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"  # relative path inside repo
