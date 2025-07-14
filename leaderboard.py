@@ -70,8 +70,8 @@ st.markdown("""
 # --- CENTERED LOGO ---
 logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
-# Create three columns with the middle one for centering
-col1, col2, col3 = st.columns([1, 2, 1])
+# Create three columns with different proportions for mobile centering
+col1, col2, col3 = st.columns([0.5, 3, 0.5])
 with col2:
     st.image(logo_path, use_container_width=True)
 
