@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS: zero spacing on logo, tighter second block ---
+# --- CSS ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -74,6 +74,8 @@ try:
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
+
+    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].str.lower()
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
@@ -82,19 +84,25 @@ try:
     kept_rows = []
     pending_rows = []
 
+    # We'll iterate through all rows, grouping customers by fuzzy matches (token_set_ratio) >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
+        # Find all rows with fuzzy token_set_ratio >= 85
+        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
+
+        # Mark all matched cleaned customers as used
         used_customers.update(matches["Cleaned Customer"].tolist())
 
+        # If any matched rows have an invoice date, pick the latest one for keeping
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
         if not matches_with_invoice.empty:
             best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
             kept_rows.append(best_match)
         else:
+            # If none have invoice dates, just take the first match row
             pending_rows.append(matches.iloc[0])
 
     df_cleaned = pd.DataFrame(kept_rows)
