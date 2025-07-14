@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
+from PIL import Image
 import base64
+from io import BytesIO
 import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
-import re
-from pytz import timezone
 
-# CSS styling as before
+# --- CSS: layout ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -45,7 +45,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Logo block
+# --- LOGO BLOCK ---
 logo_path = "0005.jpg"
 encoded_logo = base64.b64encode(open(logo_path, "rb").read()).decode()
 st.markdown(f"""
@@ -54,39 +54,12 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# --- MAIN BLOCK ---
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
-
 st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Leaderboard</h1>", unsafe_allow_html=True)
 
+# --- LOAD EXCEL DATA ---
 excel_path = "leaderboardexport.xlsx"
-
-def clean_customer_name(name):
-    name = str(name).lower()
-    name = re.sub(r'[#\d]+', '', name)
-    common_words = ['grill', 'restaurant', 'inc', 'llc', 'the', 'and', 'co', 'company', 'corp', 'corporation']
-    for w in common_words:
-        name = re.sub(r'\b' + re.escape(w) + r'\b', '', name)
-    name = re.sub(r'[^a-z\s]', '', name)
-    name = re.sub(r'\s+', ' ', name).strip()
-    return name
-
-def assign_clusters(names, threshold=80):
-    clusters = []
-    cluster_ids = {}
-    current_id = 0
-    for name in names:
-        assigned = False
-        for idx, cluster in enumerate(clusters):
-            if any(fuzz.token_sort_ratio(name, member) >= threshold for member in cluster):
-                cluster.append(name)
-                cluster_ids[name] = idx
-                assigned = True
-                break
-        if not assigned:
-            clusters.append([name])
-            cluster_ids[name] = current_id
-            current_id += 1
-    return cluster_ids, clusters
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -94,41 +67,33 @@ try:
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
+    df["Cleaned Customer"] = df["New Customer"].str.strip().str.lower()
 
-    # Clean customer names
-    df["Cleaned Customer"] = df["New Customer"].apply(clean_customer_name)
+    used_customers = set()
+    kept_rows = []
+    pending_rows = []
 
-    # Show raw vs cleaned for debugging
-    st.markdown("### Raw vs Cleaned Customer Names (Debug)")
-    for idx, row in df.iterrows():
-        st.write(f"Salesrep: {row['Salesrep']} | Raw: {row['New Customer']} | Cleaned: {row['Cleaned Customer']}")
+    for i, row in df.iterrows():
+        cust_name = row["Cleaned Customer"]
+        if cust_name in used_customers:
+            continue
 
-    # Cluster customers within each salesrep
-    cluster_results = []
-    for salesrep, group_df in df.groupby("Salesrep"):
-        unique_names = group_df["Cleaned Customer"].unique()
-        cluster_ids, clusters = assign_clusters(unique_names, threshold=80)
-        # Map back cluster ids
-        group_df = group_df.copy()
-        group_df["Cluster ID"] = group_df["Cleaned Customer"].map(cluster_ids)
-        cluster_results.append(group_df)
+        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
+        used_customers.update(matches["Cleaned Customer"].tolist())
 
-        st.markdown(f"### Clusters for Salesrep: {salesrep}")
-        for i, cluster in enumerate(clusters):
-            st.write(f"Cluster {i} ({len(cluster)} names): {cluster}")
+        matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
+        if not matches_with_invoice.empty:
+            best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
+            kept_rows.append(best_match)
+        else:
+            pending_rows.append(matches.iloc[0])
 
-    # Combine all clustered data back
-    df_clustered = pd.concat(cluster_results)
+    df_cleaned = pd.DataFrame(kept_rows)
+    df_pending = pd.DataFrame(pending_rows)
 
-    # Aggregate to count unique clusters per salesrep
-    leaderboard = (
-        df_clustered.groupby("Salesrep")["Cluster ID"]
-        .nunique()
-        .reset_index()
-        .rename(columns={"Cluster ID": "Number of New Customers"})
-        .sort_values("Number of New Customers", ascending=False)
-        .reset_index(drop=True)
-    )
+    leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
+    leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
+    leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
     def ordinal(n):
         suffixes = {1: "st", 2: "nd", 3: "rd"}
@@ -150,12 +115,15 @@ try:
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
     st.write(styled_leaderboard)
 
-    # Pending customers
-    pending = df_clustered[df_clustered["Last Invoice Date"].isna()]
-    st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
+    # --- DEBUG OUTPUT: See raw vs cleaned names ---
+    st.markdown("### 🔍 Debug: Raw vs Cleaned Customer Names")
+    for idx, row in df.iterrows():
+        st.write(f"{row['Salesrep']}:  Raw = '{row['New Customer']}'  →  Cleaned = '{row['Cleaned Customer']}'")
 
-    if not pending.empty:
-        for salesrep, group_df in pending.groupby("Salesrep"):
+    # --- PENDING CUSTOMERS ---
+    st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
+    if not df_pending.empty:
+        for salesrep, group_df in df_pending.groupby("Salesrep"):
             st.markdown(f"<h4>{salesrep}</h4>", unsafe_allow_html=True)
             rows = len(group_df)
             grid_height = 40 + rows * 35
@@ -177,17 +145,13 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
-    # Show current central time as last updated
-    central = timezone('US/Central')
-    now_central = datetime.now(central)
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {now_central.strftime('%B %d, %Y at %I:%M %p %Z')}</div>",
-        unsafe_allow_html=True
-    )
-
 except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
 except Exception as e:
     st.error(f"An error occurred: {e}")
+
+# --- FOOTER TIMESTAMP ---
+last_updated = datetime.now().strftime('%B %d, %Y at %I:%M %p')
+st.markdown(f"<div style='text-align: center; margin-top: 50px; color: gray;'>Last updated: {last_updated}</div>", unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
