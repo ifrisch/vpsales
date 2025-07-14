@@ -83,18 +83,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGO ---
+# --- LOGO with tighter bottom margin ---
 logo_path = "0005.jpg"
-
 st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: -1.5rem;">
+<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: -3rem;">
     <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
         style="height:auto;"/>
 </div>
 """, unsafe_allow_html=True)
 
-# --- TITLE with reduced top margin ---
-st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+# --- TITLE with tighter top margin ---
+st.markdown("<h1 style='margin-top: -3.5rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
