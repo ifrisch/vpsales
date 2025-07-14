@@ -8,7 +8,7 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- UPDATED CSS with different logo sizes for desktop and mobile ---
+# --- UPDATED CSS ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -40,12 +40,11 @@ st.markdown("""
     div[data-testid="stImage"] img {
         margin: 0 auto !important;
         display: block !important;
-        max-width: 480px !important;  /* larger max width on desktop */
-        width: 60% !important;        /* responsive width on desktop */
+        max-width: 480px !important;
+        width: 60% !important;
         height: auto !important;
     }
 
-    /* Mobile responsiveness */
     @media (max-width: 768px) {
         .stApp {
             text-align: center !important;
@@ -67,7 +66,7 @@ st.markdown("""
         div[data-testid="stImage"] img {
             margin: 0 auto !important;
             display: block !important;
-            max-width: 280px !important;  /* smaller max width on mobile */
+            max-width: 280px !important;
             width: 90% !important;
         }
         div[data-testid="stVerticalBlock"] {
@@ -77,7 +76,6 @@ st.markdown("""
             text-align: center !important;
         }
 
-        /* Prevent Streamlit columns from stacking on mobile */
         .css-1lcbmhc.e1fqkh3o3 {
             flex-direction: row !important;
         }
@@ -85,21 +83,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- UPDATED LOGO DISPLAY ---
-logo_path = "0005.jpg"  # Make sure this file is in your repo folder
+# --- LOGO ---
+logo_path = "0005.jpg"
 
 st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top: -10rem; margin-bottom: 1rem;">
+<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: -1.5rem;">
     <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
         style="height:auto;"/>
 </div>
 """, unsafe_allow_html=True)
 
-# --- TITLE ---
-st.markdown("<h1 style='margin-top: -15rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+# --- TITLE with reduced top margin ---
+st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"  # relative path inside repo
+excel_path = "leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -131,7 +129,6 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # --- LEADERBOARD ---
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
