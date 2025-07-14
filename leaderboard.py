@@ -28,7 +28,7 @@ st.markdown("""
 
     /* Main content block: pulled up tight below logo */
     #main-block {
-        margin-top: -20rem;
+        margin-top: -12rem;
     }
 
     /* Responsive tweaks */
