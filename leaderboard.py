@@ -1,32 +1,33 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-import base64
 from io import BytesIO
 import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CENTERED LOGO ---
-logo_path = "0005.jpg"  # make sure this file is in your repo folder
-
-def get_base64_image(image_path):
-    img = Image.open(image_path)
-    buffered = BytesIO()
-    img.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode()
-
-logo_base64 = get_base64_image(logo_path)
-
+# --- REDUCE STREAMLIT TOP/BOTTOM PADDING VIA CSS ---
 st.markdown(
-    f"""
-    <div style="text-align:center; margin-top: 1rem; margin-bottom: 1rem;">
-        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 300px; height: auto;" />
-    </div>
+    """
+    <style>
+    /* Remove padding/margin around Streamlit main container */
+    .css-18e3th9 {  /* This class may vary; adjust if needed */
+        padding-top: 0rem;
+        padding-bottom: 0rem;
+        margin-top: 0rem;
+        margin-bottom: 0rem;
+    }
+    </style>
     """,
     unsafe_allow_html=True,
 )
+
+# --- LOAD AND DISPLAY LOGO USING st.image ---
+logo_path = "0005.jpg"  # make sure this file is in your repo folder
+
+logo = Image.open(logo_path)
+st.image(logo, width=300)  # width in pixels; height auto
 
 # --- TITLE ---
 st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
