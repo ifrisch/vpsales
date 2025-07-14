@@ -3,26 +3,40 @@ import pandas as pd
 from PIL import Image
 import base64
 from io import BytesIO
-import os
 from datetime import datetime
-from fuzzywuzzy import fuzz
-from st_aggrid import AgGrid, GridOptionsBuilder
+import os
 
-# --- REMOVE DEFAULT PADDING AROUND PAGE CONTENT ---
+# --- CSS RESET TO REMOVE EXCESS SPACE ---
 st.markdown(
     """
     <style>
+    /* Remove padding and margin from main content container */
     .block-container {
-        padding-top: 0rem;
-        padding-bottom: 0rem;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin: 0 !important;
+    }
+    /* Remove margin and padding on html and body */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100%;
+    }
+    /* Also remove margin/padding from header and footer */
+    header, footer {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        display: none !important;
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
-# --- CENTERED LOGO WITH NO EXTRA MARGIN/PADDING ---
-logo_path = "0005.jpg"  # Make sure this file is in your repo folder
+# --- LOGO CENTERED ---
+logo_path = "0005.jpg"  # Make sure this image is in the same folder as your script
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
@@ -42,44 +56,24 @@ st.markdown(
 )
 
 # --- TITLE ---
-st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center; margin-top: 0.5rem;'>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"  # relative path inside repo
+excel_path = "leaderboardexport.xlsx"  # Make sure this Excel file is in the same folder
 
 try:
-    df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
+    df = pd.read_excel(excel_path, usecols="A:D")
     df.columns = ["New Customer", "Salesrep", "Ignore", "Last Invoice Date"]
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
-    df["Cleaned Customer"] = df["New Customer"].str.strip().str.lower()
 
-    used_customers = set()
-    kept_rows = []
-    pending_rows = []
-
-    for i, row in df.iterrows():
-        cust_name = row["Cleaned Customer"]
-        if cust_name in used_customers:
-            continue
-
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
-        used_customers.update(matches["Cleaned Customer"].tolist())
-
-        matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
-        if not matches_with_invoice.empty:
-            best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
-            kept_rows.append(best_match)
-        else:
-            pending_rows.append(matches.iloc[0])
-
-    df_cleaned = pd.DataFrame(kept_rows)
-    df_pending = pd.DataFrame(pending_rows)
-
-    # --- LEADERBOARD ---
-    leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
-    leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
+    leaderboard = (
+        df.groupby("Salesrep")["New Customer"]
+        .nunique()
+        .reset_index()
+        .rename(columns={"New Customer": "Number of New Customers"})
+    )
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
     def ordinal(n):
@@ -101,41 +95,13 @@ try:
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
 
-    st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
     st.write(styled_leaderboard)
-    st.markdown('</div>', unsafe_allow_html=True)
 
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
-
-    # --- PENDING CUSTOMERS ---
-    st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
-
-    if not df_pending.empty:
-        for salesrep, group_df in df_pending.groupby("Salesrep"):
-            st.markdown(f"<h4>{salesrep}</h4>", unsafe_allow_html=True)
-            rows = len(group_df)
-            grid_height = 40 + rows * 35
-
-            gb = GridOptionsBuilder.from_dataframe(group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True))
-            gb.configure_grid_options(domLayout='normal')
-            gb.configure_default_column(resizable=True, filter=True, sortable=True)
-            gb.configure_column("Last Invoice Date", hide=True)
-            gridOptions = gb.build()
-
-            AgGrid(
-                group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True),
-                gridOptions=gridOptions,
-                fit_columns_on_grid_load=True,
-                enable_enterprise_modules=False,
-                height=grid_height,
-                theme='streamlit',
-            )
-    else:
-        st.info("No pending customers! 🎉")
 
 except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
