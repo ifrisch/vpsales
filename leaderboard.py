@@ -8,6 +8,27 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
+# --- REMOVE STREAMLIT DEFAULT SPACING ---
+st.markdown("""
+<style>
+    .stApp > div:first-child {
+        padding-top: 0rem !important;
+    }
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
+    .element-container {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+    div[data-testid="stMarkdownContainer"] {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- CENTERED LOGO ---
 logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
@@ -21,26 +42,8 @@ logo_base64 = get_base64_image(logo_path)
 
 st.markdown(
     f"""
-    <style>
-        .stApp > div:first-child {{
-            padding-top: 0rem;
-        }}
-        .logo-container {{
-            margin: 0;
-            padding: 0;
-            text-align: center;
-            line-height: 0;
-        }}
-        .logo-container img {{
-            max-width: 300px;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-            padding: 0;
-        }}
-    </style>
-    <div class="logo-container">
-        <img src="data:image/jpeg;base64,{logo_base64}" />
+    <div style="text-align:center; margin: 0; padding: 0; line-height: 0;">
+        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 300px; height: auto; display: block; margin: 0 auto; padding: 0;" />
     </div>
     """,
     unsafe_allow_html=True,
