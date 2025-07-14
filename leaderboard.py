@@ -12,21 +12,36 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 st.markdown(
     """
     <style>
-    .logo-absolute {
-        position: absolute;
+    /* Logo fixed top-left, does not scroll */
+    .fixed-logo {
+        position: fixed;
         top: 1rem;
         left: 1rem;
         width: min(150px, 25vw);
         height: auto;
-        z-index: 1000;
+        z-index: 9999;
     }
 
+    /* Content pushed right and down so it doesn't overlap logo */
+    .content-wrapper {
+        margin-left: 180px;  /* space for logo width + margin */
+        margin-top: 120px;   /* space for logo height + margin */
+    }
+
+    /* Center title with trophy inline */
     h1 {
         text-align: center;
-        margin-top: 6rem;
         font-size: clamp(1.5rem, 5vw, 2.5rem);
+        margin-bottom: 0;
     }
 
+    /* Style for the pending customers heading */
+    h2 {
+        margin-top: 3rem !important;
+        font-size: clamp(1.2rem, 4vw, 1.8rem);
+    }
+
+    /* Style for smaller headings */
     h4 {
         font-size: clamp(0.9rem, 3vw, 1.2rem);
         margin-bottom: 0.3rem;
@@ -34,6 +49,7 @@ st.markdown(
         font-style: italic;
     }
 
+    /* Container for the leaderboard table */
     .leaderboard-container {
         max-width: 600px;
         margin-left: auto;
@@ -42,11 +58,7 @@ st.markdown(
         padding-right: 0.5rem;
     }
 
-    h2 {
-        margin-top: 3rem !important;
-        font-size: clamp(1.2rem, 4vw, 1.8rem);
-    }
-
+    /* Remove AgGrid border/shadow */
     .ag-theme-streamlit {
         border: 1px solid white !important;
         box-shadow: none !important;
@@ -57,7 +69,7 @@ st.markdown(
 )
 
 # --- LOGO ---
-logo_path = "logo2.png"  # Ensure this is in the same folder as this script
+logo_path = "logo2.png"  # Make sure this file is in the same folder as this script
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
@@ -68,21 +80,25 @@ def get_base64_image(image_path):
 logo_base64 = get_base64_image(logo_path)
 
 st.markdown(
-    f"""
-    <img src="data:image/png;base64,{logo_base64}" class="logo-absolute" />
-    """,
+    f'<img src="data:image/png;base64,{logo_base64}" class="fixed-logo" />',
     unsafe_allow_html=True
 )
+
+# --- WRAP CONTENT SO IT DOES NOT OVERLAP LOGO ---
+st.markdown('<div class="content-wrapper">', unsafe_allow_html=True)
 
 # --- TITLE ---
 st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"
+excel_path = "leaderboardexport.xlsx"  # Also in the same folder
 
 try:
+    # Read columns, assuming your Excel columns match these or adjust as needed
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
     df.columns = ["New Customer", "Salesrep", "Ignore", "Last Invoice Date"]
+
+    # Filter and clean data
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
@@ -92,6 +108,7 @@ try:
     kept_rows = []
     pending_rows = []
 
+    # Use fuzzy matching to clean duplicates
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
@@ -138,6 +155,7 @@ try:
     st.write(styled_leaderboard)
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- LAST UPDATED TIMESTAMP ---
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
@@ -174,3 +192,5 @@ except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
 except Exception as e:
     st.error(f"An error occurred: {e}")
+
+st.markdown('</div>', unsafe_allow_html=True)  # Close content-wrapper
