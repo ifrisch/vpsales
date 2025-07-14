@@ -8,50 +8,76 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-def get_base64_image(path):
-    img = Image.open(path)
+# --- CSS: Fixed logo top-left, content padded ---
+st.markdown(
+    """
+    <style>
+    /* Logo fixed at viewport top-left */
+    .fixed-logo {
+        position: fixed !important;
+        top: 10px;
+        left: 10px;
+        width: 120px;
+        height: auto;
+        z-index: 10000;
+    }
+    /* Pad main content so it doesn't go under logo */
+    main.css-1d391kg {
+        padding-left: 150px !important;
+        padding-top: 60px !important;
+    }
+    h1 {
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
+        text-align: center;
+        margin-top: 2rem;
+    }
+    h4 {
+        font-size: clamp(0.9rem, 3vw, 1.2rem);
+        margin-bottom: 0.3rem;
+        color: #555;
+        font-style: italic;
+    }
+    .leaderboard-container {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    h2 {
+        margin-top: 3rem !important;
+        font-size: clamp(1.2rem, 4vw, 1.8rem);
+    }
+    .ag-theme-streamlit {
+        border: 1px solid white !important;
+        box-shadow: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- LOGO ---
+logo_path = r"C:\\Users\\Isaac\\Downloads\\logo2.png"  # adjust path if needed
+
+def get_base64_image(image_path):
+    img = Image.open(image_path)
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# Path to your logo image (adjust as needed)
-logo_path = "logo2.png"
 logo_base64 = get_base64_image(logo_path)
 
-# Inject CSS for absolute logo positioning and left padding for content
 st.markdown(
-    """
-    <style>
-    /* Absolute positioned logo */
-    .absolute-logo {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 120px;
-        height: auto;
-        margin: 10px;
-        z-index: 1000;
-    }
-    /* Add left padding to main content to avoid overlap with logo */
-    main.css-1d391kg {
-        padding-left: 150px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Display logo with absolute positioning
-st.markdown(
-    f'<img src="data:image/png;base64,{logo_base64}" class="absolute-logo" />',
+    f'<img src="data:image/png;base64,{logo_base64}" class="fixed-logo" />',
     unsafe_allow_html=True,
 )
 
-# Centered title, margin-top to separate from logo
-st.markdown("<h1 style='text-align:center; margin-top: 20px;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+# --- TITLE ---
+st.markdown("<h1>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
-# --- Load your Excel data ---
-excel_path = "leaderboardexport.xlsx"
+# --- LOAD DATA ---
+excel_path = r"C:\\Users\\Isaac\\Downloads\\leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -83,7 +109,7 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # --- Leaderboard ---
+    # --- LEADERBOARD ---
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
@@ -107,7 +133,9 @@ try:
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
 
+    st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
     st.write(styled_leaderboard)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
@@ -115,7 +143,7 @@ try:
         unsafe_allow_html=True
     )
 
-    # --- Pending customers ---
+    # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
     if not df_pending.empty:
