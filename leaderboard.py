@@ -84,13 +84,14 @@ try:
     kept_rows = []
     pending_rows = []
 
-    # Group customers by fuzzy token_set_ratio >= 85
+    # Group customers by fuzzy matches (token_set_ratio) >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
         matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
+
         used_customers.update(matches["Cleaned Customer"].tolist())
 
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
@@ -103,22 +104,26 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # Build leaderboard
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
-    # Bonus payout logic
-    def calculate_bonus(row, max_customers):
-        base_bonus = 50 if row["Number of New Customers"] >= 3 else 0
-        top_bonus = 100 if row["Number of New Customers"] == max_customers else 0
-        return base_bonus + top_bonus
+    # Calculate bonuses
+    max_customers = leaderboard["Number of New Customers"].max()
 
-    max_new_customers = leaderboard["Number of New Customers"].max() if not leaderboard.empty else 0
+    def calculate_bonus(row, max_cust):
+        bonus = 0
+        if row["Number of New Customers"] >= 3:
+            bonus += 50
+        if row["Number of New Customers"] == max_cust and max_cust > 0:
+            bonus += 100
+        return bonus
+
     leaderboard["Bonus"] = leaderboard.apply(lambda row: calculate_bonus(row, max_customers), axis=1)
-    leaderboard["Bonus"] = leaderboard["Bonus"].apply(lambda x: f"${x}")	
 
-    # Ranking with ordinal suffixes
+    # Format bonus with $ symbol
+    leaderboard["Bonus"] = leaderboard["Bonus"].apply(lambda x: f"${x}")
+
     def ordinal(n):
         suffixes = {1: "st", 2: "nd", 3: "rd"}
         if 10 <= n % 100 <= 20:
@@ -137,6 +142,7 @@ try:
         return styles
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
+
     st.write(styled_leaderboard)
 
     # --- PENDING CUSTOMERS ---
