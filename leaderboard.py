@@ -6,7 +6,9 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import re
+from pytz import timezone
 
+# CSS styling as before
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -43,7 +45,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGO BLOCK ---
+# Logo block
 logo_path = "0005.jpg"
 encoded_logo = base64.b64encode(open(logo_path, "rb").read()).decode()
 st.markdown(f"""
@@ -60,13 +62,10 @@ excel_path = "leaderboardexport.xlsx"
 
 def clean_customer_name(name):
     name = str(name).lower()
-    # Remove digits and # signs (like #1, #2)
     name = re.sub(r'[#\d]+', '', name)
-    # Remove common business words that can vary
     common_words = ['grill', 'restaurant', 'inc', 'llc', 'the', 'and', 'co', 'company', 'corp', 'corporation']
     for w in common_words:
         name = re.sub(r'\b' + re.escape(w) + r'\b', '', name)
-    # Remove punctuation and extra spaces
     name = re.sub(r'[^a-z\s]', '', name)
     name = re.sub(r'\s+', ' ', name).strip()
     return name
@@ -75,11 +74,9 @@ def assign_clusters(names, threshold=80):
     clusters = []
     cluster_ids = {}
     current_id = 0
-
     for name in names:
         assigned = False
         for idx, cluster in enumerate(clusters):
-            # Compare against *all* cluster members, not just first
             if any(fuzz.token_sort_ratio(name, member) >= threshold for member in cluster):
                 cluster.append(name)
                 cluster_ids[name] = idx
@@ -98,26 +95,34 @@ try:
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
 
+    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].apply(clean_customer_name)
 
-    unique_names = df["Cleaned Customer"].unique()
-    cluster_ids, clusters = assign_clusters(unique_names, threshold=80)
+    # Show raw vs cleaned for debugging
+    st.markdown("### Raw vs Cleaned Customer Names (Debug)")
+    for idx, row in df.iterrows():
+        st.write(f"Salesrep: {row['Salesrep']} | Raw: {row['New Customer']} | Cleaned: {row['Cleaned Customer']}")
 
-    df["Cluster ID"] = df["Cleaned Customer"].map(cluster_ids)
+    # Cluster customers within each salesrep
+    cluster_results = []
+    for salesrep, group_df in df.groupby("Salesrep"):
+        unique_names = group_df["Cleaned Customer"].unique()
+        cluster_ids, clusters = assign_clusters(unique_names, threshold=80)
+        # Map back cluster ids
+        group_df = group_df.copy()
+        group_df["Cluster ID"] = group_df["Cleaned Customer"].map(cluster_ids)
+        cluster_results.append(group_df)
 
-    # Debug: Show clusters
-    st.markdown("### Customer Clusters (Debug)")
-    for i, cluster in enumerate(clusters):
-        st.write(f"Cluster {i} ({len(cluster)} customers): {cluster}")
+        st.markdown(f"### Clusters for Salesrep: {salesrep}")
+        for i, cluster in enumerate(clusters):
+            st.write(f"Cluster {i} ({len(cluster)} names): {cluster}")
 
-    agg_df = (
-        df.groupby(["Salesrep", "Cluster ID"])
-        .agg({"Last Invoice Date": "max", "New Customer": "first"})
-        .reset_index()
-    )
+    # Combine all clustered data back
+    df_clustered = pd.concat(cluster_results)
 
+    # Aggregate to count unique clusters per salesrep
     leaderboard = (
-        agg_df.groupby("Salesrep")["Cluster ID"]
+        df_clustered.groupby("Salesrep")["Cluster ID"]
         .nunique()
         .reset_index()
         .rename(columns={"Cluster ID": "Number of New Customers"})
@@ -145,7 +150,8 @@ try:
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
     st.write(styled_leaderboard)
 
-    pending = agg_df[agg_df["Last Invoice Date"].isna()]
+    # Pending customers
+    pending = df_clustered[df_clustered["Last Invoice Date"].isna()]
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
     if not pending.empty:
@@ -171,7 +177,7 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
-    from pytz import timezone
+    # Show current central time as last updated
     central = timezone('US/Central')
     now_central = datetime.now(central)
     st.markdown(
