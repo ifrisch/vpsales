@@ -1,90 +1,93 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-import base64
 from io import BytesIO
+import base64
 import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS RESET to remove excess vertical space and header/footer ---
-st.markdown(
-    """
+# --- Aggressive CSS to remove padding/margin and center logo ---
+st.markdown("""
     <style>
-    /* Remove padding and margin from main content container */
+    /* Remove all padding and margin in Streamlit main container */
     .block-container {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
-        margin: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
-    /* Remove margin and padding on html and body */
+    /* Remove header and footer */
+    header, footer {
+        display: none !important;
+    }
+    /* Remove margins/padding from body and html */
     html, body {
         margin: 0 !important;
         padding: 0 !important;
         height: 100%;
     }
-    /* Remove Streamlit header and footer */
-    header, footer {
-        display: none !important;
-        height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        min-height: 0 !important;
-    }
-    /* Centered logo container */
+    /* Center container for logo */
     .logo-container {
+        margin: 0 !important;
+        padding: 0 !important;
         text-align: center;
-        margin-top: 0;
-        margin-bottom: 0;
-        padding: 0;
+        line-height: 0;
     }
     .logo-container img {
         max-width: 400px;
         height: auto;
-        margin: 0;
-        padding: 0;
+        margin: 0 !important;
+        padding: 0 !important;
         display: inline-block;
+        vertical-align: top;
     }
-    /* Center title with small margin */
     h1 {
         text-align: center;
-        margin-top: 0.5rem;
-        margin-bottom: 2rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
+    }
+    .leaderboard-container {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    .ag-theme-streamlit {
+        border: 1px solid white !important;
+        box-shadow: none !important;
     }
     </style>
-    """,
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# --- LOGO ---
-logo_path = "0005.jpg"  # Make sure this file is in the same folder as leaderboard.py
+# --- Load and display logo ---
+logo_path = r"C:\Users\Isaac\Downloads\0005.jpg"  # Make sure this path is correct
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
-    buffered = BytesIO()
-    img.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode()
+    buffer = BytesIO()
+    img.save(buffer, format="JPEG")
+    return base64.b64encode(buffer.getvalue()).decode()
 
 logo_base64 = get_base64_image(logo_path)
 
-st.markdown(
-    f"""
+st.markdown(f"""
     <div class="logo-container">
-        <img src="data:image/jpeg;base64,{logo_base64}" alt="Company Logo" />
+        <img src="data:image/jpeg;base64,{logo_base64}" alt="Logo" />
     </div>
-    """,
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# --- TITLE ---
+# --- Title ---
 st.markdown("<h1>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
-# --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"  # Make sure this file is in the same folder
+# --- Load Excel data ---
+excel_path = r"C:\Users\Isaac\Downloads\leaderboardexport.xlsx"
 
 try:
-    df = pd.read_excel(excel_path, usecols="A:D")
+    df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
     df.columns = ["New Customer", "Salesrep", "Ignore", "Last Invoice Date"]
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
@@ -137,12 +140,14 @@ try:
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
 
+    st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
     st.write(styled_leaderboard)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
     # --- PENDING CUSTOMERS ---
