@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image
 import base64
-from io import BytesIO
 import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
@@ -68,7 +66,7 @@ st.markdown('<div id="main-block">', unsafe_allow_html=True)
 st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = "C:\\Users\\Isaac\\Downloads\\leaderboard.xlsx"
+excel_path = "leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
