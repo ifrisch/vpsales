@@ -8,30 +8,49 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- Encode image ---
 def get_base64_image(path):
     img = Image.open(path)
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# --- Load & display logo at top-left of page content ---
-logo_path = "logo2.png"  # Make sure this is in same folder or use full path
+# Path to your logo image (adjust as needed)
+logo_path = "logo2.png"
 logo_base64 = get_base64_image(logo_path)
 
+# Inject CSS for absolute logo positioning and left padding for content
 st.markdown(
-    f"""
-    <div style="text-align: left; padding-top: 10px; padding-bottom: 10px;">
-        <img src="data:image/png;base64,{logo_base64}" style="width: 120px; height: auto;">
-    </div>
+    """
+    <style>
+    /* Absolute positioned logo */
+    .absolute-logo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 120px;
+        height: auto;
+        margin: 10px;
+        z-index: 1000;
+    }
+    /* Add left padding to main content to avoid overlap with logo */
+    main.css-1d391kg {
+        padding-left: 150px !important;
+    }
+    </style>
     """,
     unsafe_allow_html=True
 )
 
-# --- Centered title ---
-st.markdown("<h1 style='text-align:center;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+# Display logo with absolute positioning
+st.markdown(
+    f'<img src="data:image/png;base64,{logo_base64}" class="absolute-logo" />',
+    unsafe_allow_html=True,
+)
 
-# --- Load Excel data ---
+# Centered title, margin-top to separate from logo
+st.markdown("<h1 style='text-align:center; margin-top: 20px;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+
+# --- Load your Excel data ---
 excel_path = "leaderboardexport.xlsx"
 
 try:
