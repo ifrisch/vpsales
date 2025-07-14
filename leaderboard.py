@@ -5,11 +5,11 @@ import base64
 from io import BytesIO
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
-import re
 
-# --- CSS ---
+# --- CSS: zero spacing on logo, tighter second block ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -65,15 +65,6 @@ st.markdown('<div id="main-block">', unsafe_allow_html=True)
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Leaderboard</h1>", unsafe_allow_html=True)
 
-# --- CLEANING FUNCTION ---
-def clean_customer_name(name):
-    name = name.lower().strip()
-    name = re.sub(r'#\d+', '', name)  # remove #1, #2, etc.
-    name = re.sub(r'\b(grill|location|store|unit|branch|restaurant|no\.\s?\d+)\b', '', name)  # remove generic terms
-    name = re.sub(r'[^\w\s]', '', name)  # remove punctuation
-    name = re.sub(r'\s+', ' ', name)  # collapse whitespace
-    return name.strip()
-
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
 
@@ -83,7 +74,9 @@ try:
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
-    df["Cleaned Customer"] = df["New Customer"].apply(clean_customer_name)
+    df["Cleaned Customer"] = df["New Customer"].str.lower()
+    df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
+    df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
 
     used_customers = set()
     kept_rows = []
@@ -158,17 +151,18 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
-    # --- LAST UPDATED TIMESTAMP (based on code run time) ---
-    now = datetime.now()
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {now.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
-    )
-
 except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
 except Exception as e:
     st.error(f"An error occurred: {e}")
 
-# --- END MAIN BLOCK ---
+# --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
+
+# --- LAST UPDATED TIMESTAMP (Central Time) ---
+central = ZoneInfo("America/Chicago")
+last_updated = datetime.now(central)
+st.markdown(
+    f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+    unsafe_allow_html=True
+)
