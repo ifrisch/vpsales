@@ -47,7 +47,7 @@ with col2:
     st.image(logo_path, width=300)
 
 # --- TITLE ---
-st.markdown("<h1 style='margin-top: -2rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='margin-top: -4rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"  # relative path inside repo
