@@ -46,22 +46,34 @@ st.markdown("""
     
     /* Mobile responsiveness */
     @media (max-width: 768px) {
-        div[data-testid="stImage"] img {
-            max-width: 280px !important;
-            width: 90% !important;
-            margin: 0 auto !important;
-            display: block !important;
-        }
-        div[data-testid="stImage"] {
+        .stApp {
             text-align: center !important;
-        }
-        div[data-testid="stImage"] > div {
-            text-align: center !important;
-            margin: 0 auto !important;
         }
         .block-container {
             padding-left: 1rem !important;
             padding-right: 1rem !important;
+            text-align: center !important;
+        }
+        div[data-testid="stImage"] {
+            text-align: center !important;
+            width: 100% !important;
+        }
+        div[data-testid="stImage"] > div {
+            text-align: center !important;
+            margin: 0 auto !important;
+            width: 100% !important;
+        }
+        div[data-testid="stImage"] img {
+            margin: 0 auto !important;
+            display: block !important;
+            max-width: 280px !important;
+            width: 90% !important;
+        }
+        div[data-testid="stVerticalBlock"] {
+            text-align: center !important;
+        }
+        div[data-testid="column"] {
+            text-align: center !important;
         }
     }
 </style>
