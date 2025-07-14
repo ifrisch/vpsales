@@ -64,7 +64,7 @@ st.markdown(f"""
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
 
 # --- TITLE ---
-st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
