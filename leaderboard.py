@@ -8,7 +8,7 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS for spacing, centering, and layout fixes ---
+# --- CSS: zero spacing on logo, tighter second block ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -17,69 +17,52 @@ st.markdown("""
     .block-container {
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
-        margin-top: -2rem !important;
-    }
-    .element-container {
-        margin: 0px !important;
-        padding: 0px !important;
-    }
-    div[data-testid="stMarkdownContainer"] {
-        margin: 0px !important;
-        padding: 0px !important;
     }
 
-    /* Shift entire vertical block upward (title + table) */
-    div[data-testid="stVerticalBlock"] {
-        margin-top: -20rem !important;
+    /* Logo block: no extra spacing */
+    #logo-block {
+        margin-top: 0rem;
+        margin-bottom: -3rem;
+        text-align: center;
     }
 
-    div[data-testid="stImage"] {
-        margin: -1rem 0px !important;
-        padding: 0px !important;
-        text-align: center !important;
-    }
-    div[data-testid="stImage"] > div {
-        margin: 0px auto !important;
-        padding: 0px !important;
-        text-align: center !important;
-    }
-    div[data-testid="stImage"] img {
-        margin: 0 auto !important;
-        display: block !important;
-        max-width: 480px !important;
-        width: 60% !important;
-        height: auto !important;
+    /* Main content block: pulled up tight below logo */
+    #main-block {
+        margin-top: -3.5rem;
     }
 
+    /* Responsive tweaks */
     @media (max-width: 768px) {
-        .stApp {
-            text-align: center !important;
-        }
-        .block-container {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            text-align: center !important;
-        }
-        div[data-testid="stImage"] img {
+        #logo-block img {
             max-width: 280px !important;
             width: 90% !important;
         }
-        div[data-testid="stVerticalBlock"] {
-            text-align: center !important;
+        #main-block {
             margin-top: -2rem !important;
         }
+    }
+
+    img.logo-img {
+        max-width: 480px;
+        width: 60%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGO ---
+# --- LOGO BLOCK ---
 logo_path = "0005.jpg"
+encoded_logo = base64.b64encode(open(logo_path, "rb").read()).decode()
 st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: -3rem;">
-    <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
-        style="height:auto;"/>
+<div id="logo-block">
+    <img src="data:image/jpeg;base64,{encoded_logo}" class="logo-img" />
 </div>
 """, unsafe_allow_html=True)
+
+# --- MAIN CONTENT BLOCK (everything else) ---
+st.markdown('<div id="main-block">', unsafe_allow_html=True)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
@@ -140,9 +123,7 @@ try:
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
 
-    st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
     st.write(styled_leaderboard)
-    st.markdown('</div>', unsafe_allow_html=True)
 
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
@@ -180,3 +161,6 @@ except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
 except Exception as e:
     st.error(f"An error occurred: {e}")
+
+# --- Close MAIN BLOCK ---
+st.markdown('</div>', unsafe_allow_html=True)
