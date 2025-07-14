@@ -111,7 +111,7 @@ try:
     # Bonus payout logic
     def calculate_bonus(row, max_customers):
         base_bonus = 50 if row["Number of New Customers"] >= 3 else 0
-        top_bonus = 100 if row["Number of New Customers"] == max_customers and max_customers >= 3 else 0
+        top_bonus = 100 if row["Number of New Customers"] == max_customers else 0
         return base_bonus + top_bonus
 
     max_new_customers = leaderboard["Number of New Customers"].max() if not leaderboard.empty else 0
