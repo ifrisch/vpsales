@@ -89,7 +89,7 @@ st.markdown("""
 logo_path = "0005.jpg"  # Make sure this file is in your repo folder
 
 st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: 1rem;">
+<div style="display:flex; justify-content:center; margin-top: -10rem; margin-bottom: 1rem;">
     <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
         style="height:auto;"/>
 </div>
