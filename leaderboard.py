@@ -7,8 +7,9 @@ import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
+import re
 
-# --- CSS: layout ---
+# --- CSS ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -18,14 +19,17 @@ st.markdown("""
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
     }
+
     #logo-block {
         margin-top: -6rem;
         margin-bottom: -10rem;
         text-align: center;
     }
+
     #main-block {
         margin-top: -12rem;
     }
+
     @media (max-width: 768px) {
         #logo-block img {
             max-width: 280px !important;
@@ -35,6 +39,7 @@ st.markdown("""
             margin-top: -20rem !important;
         }
     }
+
     img.logo-img {
         max-width: 480px;
         width: 60%;
@@ -54,11 +59,22 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- MAIN BLOCK ---
+# --- MAIN CONTENT BLOCK ---
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
+
+# --- TITLE ---
 st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Leaderboard</h1>", unsafe_allow_html=True)
 
-# --- LOAD EXCEL DATA ---
+# --- CLEANING FUNCTION ---
+def clean_customer_name(name):
+    name = name.lower().strip()
+    name = re.sub(r'#\d+', '', name)  # remove #1, #2, etc.
+    name = re.sub(r'\b(grill|location|store|unit|branch|restaurant|no\.\s?\d+)\b', '', name)  # remove generic terms
+    name = re.sub(r'[^\w\s]', '', name)  # remove punctuation
+    name = re.sub(r'\s+', ' ', name)  # collapse whitespace
+    return name.strip()
+
+# --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
 
 try:
@@ -67,7 +83,7 @@ try:
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
-    df["Cleaned Customer"] = df["New Customer"].str.strip().str.lower()
+    df["Cleaned Customer"] = df["New Customer"].apply(clean_customer_name)
 
     used_customers = set()
     kept_rows = []
@@ -78,8 +94,7 @@ try:
         if cust_name in used_customers:
             continue
 
-        # ✅ Fuzzy match using partial_ratio and lower threshold
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.partial_ratio(x, cust_name) >= 85)].copy()
+        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
         used_customers.update(matches["Cleaned Customer"].tolist())
 
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
@@ -114,15 +129,12 @@ try:
         return styles
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
-    st.write(styled_leaderboard)
 
-    # --- DEBUG OUTPUT ---
-    st.markdown("### 🔍 Debug: Raw vs Cleaned Customer Names")
-    for idx, row in df.iterrows():
-        st.write(f"{row['Salesrep']}: Raw = '{row['New Customer']}' → Cleaned = '{row['Cleaned Customer']}'")
+    st.write(styled_leaderboard)
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
+
     if not df_pending.empty:
         for salesrep, group_df in df_pending.groupby("Salesrep"):
             st.markdown(f"<h4>{salesrep}</h4>", unsafe_allow_html=True)
@@ -146,13 +158,17 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
+    # --- LAST UPDATED TIMESTAMP (based on code run time) ---
+    now = datetime.now()
+    st.markdown(
+        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {now.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        unsafe_allow_html=True
+    )
+
 except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
 except Exception as e:
     st.error(f"An error occurred: {e}")
 
-# --- FOOTER TIMESTAMP ---
-last_updated = datetime.now().strftime('%B %d, %Y at %I:%M %p')
-st.markdown(f"<div style='text-align: center; margin-top: 50px; color: gray;'>Last updated: {last_updated}</div>", unsafe_allow_html=True)
-
+# --- END MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
