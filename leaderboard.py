@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS ---
+# --- CSS: zero spacing on logo, tighter second block ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -74,8 +74,6 @@ try:
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
-
-    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].str.lower()
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
@@ -84,34 +82,43 @@ try:
     kept_rows = []
     pending_rows = []
 
-    # We'll iterate through all rows, grouping customers by fuzzy matches (token_set_ratio) >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
-        # Find all rows with fuzzy token_set_ratio >= 85
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
-
-        # Mark all matched cleaned customers as used
+        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
         used_customers.update(matches["Cleaned Customer"].tolist())
 
-        # If any matched rows have an invoice date, pick the latest one for keeping
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
         if not matches_with_invoice.empty:
             best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
             kept_rows.append(best_match)
         else:
-            # If none have invoice dates, just take the first match row
             pending_rows.append(matches.iloc[0])
 
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
+    # Group and count unique new customers per salesrep
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
+
+    # Calculate bonus amounts
+    max_customers = leaderboard["Number of New Customers"].max() if not leaderboard.empty else 0
+    def calculate_bonus(row):
+        bonus = 0
+        if row["Number of New Customers"] >= 3:
+            bonus += 50
+        if row["Number of New Customers"] == max_customers and max_customers > 0:
+            bonus += 100
+        return f"${bonus}"
+
+    leaderboard["Bonus Amount"] = leaderboard.apply(calculate_bonus, axis=1)
+
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
+    # Add ordinal rank
     def ordinal(n):
         suffixes = {1: "st", 2: "nd", 3: "rd"}
         if 10 <= n % 100 <= 20:
@@ -123,6 +130,7 @@ try:
     leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
     leaderboard = leaderboard.set_index("Rank")
 
+    # Highlight 1st place salesrep
     def highlight_first_salesrep(s):
         styles = pd.DataFrame("", index=s.index, columns=s.columns)
         if "1st" in s.index:
