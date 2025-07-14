@@ -115,7 +115,8 @@ try:
         return base_bonus + top_bonus
 
     max_new_customers = leaderboard["Number of New Customers"].max() if not leaderboard.empty else 0
-    leaderboard["Bonus ($)"] = leaderboard.apply(lambda row: calculate_bonus(row, max_new_customers), axis=1)
+    leaderboard["Bonus"] = leaderboard.apply(lambda row: calculate_bonus(row, max_customers), axis=1)
+    leaderboard["Bonus"] = leaderboard["Bonus"].apply(lambda x: f"${x}")	
 
     # Ranking with ordinal suffixes
     def ordinal(n):
