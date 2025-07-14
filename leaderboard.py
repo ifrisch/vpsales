@@ -3,6 +3,7 @@ import pandas as pd
 import base64
 import os
 from datetime import datetime
+import pytz
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
@@ -157,9 +158,10 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- Show current time as last updated ---
-now = datetime.now()
+# --- Show current time in US Central Time as last updated ---
+central = pytz.timezone('US/Central')
+now = datetime.now(central)
 st.markdown(
-    f"<div style='text-align: center; margin-top: 3rem; color: gray;'>Last updated: {now.strftime('%B %d, %Y at %I:%M %p')}</div>",
+    f"<div style='text-align: center; margin-top: 3rem; color: gray;'>Last updated: {now.strftime('%B %d, %Y at %I:%M %p %Z')}</div>",
     unsafe_allow_html=True
 )
