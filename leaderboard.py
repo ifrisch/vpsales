@@ -61,14 +61,14 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- MAIN CONTENT BLOCK (everything else) ---
+# --- MAIN CONTENT BLOCK ---
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"
+excel_path = "C:\\Users\\Isaac\\Downloads\\leaderboard.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -125,12 +125,6 @@ try:
 
     st.write(styled_leaderboard)
 
-    last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
-    )
-
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
@@ -164,3 +158,11 @@ except Exception as e:
 
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
+
+# --- LAST UPDATED (Always at the bottom of the app) ---
+if os.path.exists(excel_path):
+    last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
+    st.markdown(
+        f"<div style='text-align: center; margin-top: 3rem; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        unsafe_allow_html=True
+    )
