@@ -1,39 +1,74 @@
 import streamlit as st
-import pandas as pd
 from PIL import Image
+import base64
 from io import BytesIO
 import os
 from datetime import datetime
+import pandas as pd
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- REDUCE STREAMLIT TOP/BOTTOM PADDING VIA CSS ---
-st.markdown(
-    """
+# --- HELPER: get base64 of image ---
+def get_base64_image(image_path):
+    img = Image.open(image_path)
+    buffered = BytesIO()
+    img.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode()
+
+logo_path = "0005.jpg"
+logo_base64 = get_base64_image(logo_path)
+
+# --- Inject CSS to remove Streamlit spacing around main container and components ---
+st.markdown("""
     <style>
-    /* Remove padding/margin around Streamlit main container */
-    .css-18e3th9 {  /* This class may vary; adjust if needed */
-        padding-top: 0rem;
-        padding-bottom: 0rem;
-        margin-top: 0rem;
-        margin-bottom: 0rem;
+    /* Remove default Streamlit padding/margin around the page */
+    .css-18e3th9, .css-1d391kg {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+        margin-top: 0rem !important;
+        margin-bottom: 0rem !important;
+    }
+    /* Remove spacing Streamlit puts between elements */
+    div.block-container > div {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    /* Tight container for logo and title */
+    .logo-title-container {
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    /* Remove any default spacing for the image */
+    .logo-title-container img {
+        display: block;
+        margin: 0 auto;
+        padding: 0;
+        max-width: 300px;
+        height: auto;
+    }
+    /* Remove spacing for the title */
+    .logo-title-container h1 {
+        margin: 0;
+        padding: 0;
+        line-height: 1.1;
     }
     </style>
-    """,
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# --- LOAD AND DISPLAY LOGO USING st.image ---
-logo_path = "0005.jpg"  # make sure this file is in your repo folder
+# --- Render logo and title in the same div with zero spacing ---
+st.markdown(f"""
+    <div class="logo-title-container">
+        <img src="data:image/jpeg;base64,{logo_base64}" />
+        <h1>🏆 Salesrep Leaderboard</h1>
+    </div>
+""", unsafe_allow_html=True)
 
-logo = Image.open(logo_path)
-st.image(logo, width=300)  # width in pixels; height auto
+# --- Now your existing leaderboard code below ---
+# (Rest of your code remains unchanged)
 
-# --- TITLE ---
-st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
-
-# --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"  # relative path inside repo
+excel_path = "leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -65,7 +100,6 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # --- LEADERBOARD ---
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
