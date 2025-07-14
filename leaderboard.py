@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS: zero spacing on logo, tighter second block ---
+# --- CSS ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -75,7 +75,7 @@ try:
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
 
-    # CLEAN customer names for fuzzy matching: lowercase, remove punctuation, collapse spaces
+    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].str.lower()
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
@@ -84,16 +84,15 @@ try:
     kept_rows = []
     pending_rows = []
 
+    # Group customers by fuzzy token_set_ratio >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
-        # Find all customers with fuzzy similarity >= 90 to current cust_name
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
+        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
         used_customers.update(matches["Cleaned Customer"].tolist())
 
-        # Prioritize matches with invoice date
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
         if not matches_with_invoice.empty:
             best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
@@ -104,25 +103,21 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # GROUP BY salesrep for leaderboard count
+    # Build leaderboard
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
-    # --- BONUS CALCULATION ---
-    max_accounts = leaderboard["Number of New Customers"].max() if not leaderboard.empty else 0
+    # Bonus payout logic
+    def calculate_bonus(row, max_customers):
+        base_bonus = 50 if row["Number of New Customers"] >= 3 else 0
+        top_bonus = 100 if row["Number of New Customers"] == max_customers and max_customers >= 3 else 0
+        return base_bonus + top_bonus
 
-    def calc_bonus(row):
-        bonus = 0
-        if row["Number of New Customers"] >= 3:
-            bonus += 50
-        if row["Number of New Customers"] == max_accounts and max_accounts > 0:
-            bonus += 100
-        return f"${bonus}"
+    max_new_customers = leaderboard["Number of New Customers"].max() if not leaderboard.empty else 0
+    leaderboard["Bonus ($)"] = leaderboard.apply(lambda row: calculate_bonus(row, max_new_customers), axis=1)
 
-    leaderboard["Bonus $"] = leaderboard.apply(calc_bonus, axis=1)
-
-    # ADD Rank column with ordinal suffix
+    # Ranking with ordinal suffixes
     def ordinal(n):
         suffixes = {1: "st", 2: "nd", 3: "rd"}
         if 10 <= n % 100 <= 20:
@@ -134,7 +129,6 @@ try:
     leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
     leaderboard = leaderboard.set_index("Rank")
 
-    # Highlight 1st place Salesrep
     def highlight_first_salesrep(s):
         styles = pd.DataFrame("", index=s.index, columns=s.columns)
         if "1st" in s.index:
@@ -146,6 +140,7 @@ try:
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
+
     if not df_pending.empty:
         for salesrep, group_df in df_pending.groupby("Salesrep"):
             st.markdown(f"<h4>{salesrep}</h4>", unsafe_allow_html=True)
