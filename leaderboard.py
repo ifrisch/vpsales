@@ -8,29 +8,28 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- Helper function to encode image ---
+# --- Encode image ---
 def get_base64_image(path):
     img = Image.open(path)
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# --- Display logo in top-left (scrolls away normally) ---
-logo_path = "logo2.png"
+# --- Load & display logo at top-left of page content ---
+logo_path = "logo2.png"  # Make sure this is in same folder or use full path
+logo_base64 = get_base64_image(logo_path)
+
 st.markdown(
     f"""
-    <div style="display: flex; align-items: flex-start;">
-        <img src="data:image/png;base64,{get_base64_image(logo_path)}" style="width: 100px; height: auto;" />
+    <div style="text-align: left; padding-top: 10px; padding-bottom: 10px;">
+        <img src="data:image/png;base64,{logo_base64}" style="width: 120px; height: auto;">
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# --- Title ---
-st.markdown(
-    "<h1 style='text-align: center; margin-top: 10px;'>🏆 Salesrep Leaderboard</h1>",
-    unsafe_allow_html=True
-)
+# --- Centered title ---
+st.markdown("<h1 style='text-align:center;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- Load Excel data ---
 excel_path = "leaderboardexport.xlsx"
