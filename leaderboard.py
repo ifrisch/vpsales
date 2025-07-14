@@ -22,7 +22,7 @@ st.markdown("""
     /* Logo block: no extra spacing */
     #logo-block {
         margin-top: 0rem;
-        margin-bottom: -3rem;
+        margin-bottom: -15rem;
         text-align: center;
     }
 
