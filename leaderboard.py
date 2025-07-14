@@ -64,7 +64,7 @@ logo_path = "0005.jpg"  # make sure this file is in your repo folder
 # Create three columns with the middle one for centering
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.image(logo_path, width=300, use_container_width=False)
+    st.image(logo_path, use_container_width=True)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: -4rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
