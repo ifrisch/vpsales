@@ -8,8 +8,21 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CENTERED LOGO ---
-logo_path = "0005.jpg"  # make sure this file is in your repo folder
+# --- REMOVE DEFAULT PADDING AROUND PAGE CONTENT ---
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 0rem;
+        padding-bottom: 0rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- CENTERED LOGO WITH NO EXTRA MARGIN/PADDING ---
+logo_path = "0005.jpg"  # Make sure this file is in your repo folder
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
@@ -21,8 +34,8 @@ logo_base64 = get_base64_image(logo_path)
 
 st.markdown(
     f"""
-     <div style="text-align:center; margin: 0; padding: 0;">
-          <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 400px; height: auto; margin: 0; padding: 0;" />
+    <div style="text-align:center; margin: 0; padding: 0;">
+        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 400px; height: auto; margin: 0; padding: 0;" />
     </div>
     """,
     unsafe_allow_html=True,
