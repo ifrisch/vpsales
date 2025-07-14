@@ -1,90 +1,38 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-from io import BytesIO
 import base64
+from io import BytesIO
 import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- Aggressive CSS to remove padding/margin and center logo ---
-st.markdown("""
-    <style>
-    /* Remove all padding and margin in Streamlit main container */
-    .block-container {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-    }
-    /* Remove header and footer */
-    header, footer {
-        display: none !important;
-    }
-    /* Remove margins/padding from body and html */
-    html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        height: 100%;
-    }
-    /* Center container for logo */
-    .logo-container {
-        margin: 0 !important;
-        padding: 0 !important;
-        text-align: center;
-        line-height: 0;
-    }
-    .logo-container img {
-        max-width: 400px;
-        height: auto;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: inline-block;
-        vertical-align: top;
-    }
-    h1 {
-        text-align: center;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-        font-size: clamp(1.5rem, 5vw, 2.5rem);
-    }
-    .leaderboard-container {
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-    .ag-theme-streamlit {
-        border: 1px solid white !important;
-        box-shadow: none !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- Load and display logo ---
-logo_path = r"C:\Users\Isaac\Downloads\0005.jpg"  # Make sure this path is correct
+# --- CENTERED LOGO ---
+logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
-    buffer = BytesIO()
-    img.save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode()
+    buffered = BytesIO()
+    img.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode()
 
 logo_base64 = get_base64_image(logo_path)
 
-st.markdown(f"""
-    <div class="logo-container">
-        <img src="data:image/jpeg;base64,{logo_base64}" alt="Logo" />
+st.markdown(
+    f"""
+    <div style="text-align:center; margin-top: 1rem; margin-bottom: 1rem;">
+        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 300px; height: auto;" />
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
-# --- Title ---
-st.markdown("<h1>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+# --- TITLE ---
+st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
-# --- Load Excel data ---
-excel_path = r"C:\Users\Isaac\Downloads\leaderboardexport.xlsx"
+# --- LOAD DATA ---
+excel_path = "leaderboardexport.xlsx"  # relative path inside repo
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
