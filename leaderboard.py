@@ -8,29 +8,23 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS STYLING ---
+# --- CSS ---
 st.markdown(
     """
     <style>
-    .fixed-logo {
-        display: block;
-        margin-top: 0.5rem;
-        margin-left: 0.5rem;
+    .logo-absolute {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
         width: min(150px, 25vw);
         height: auto;
-    }
-
-    .logo-wrapper {
-        display: flex;
-        justify-content: flex-start;
-        align-items: flex-start;
-        margin-bottom: -1rem;
+        z-index: 1000;
     }
 
     h1 {
-        font-size: clamp(1.5rem, 5vw, 2.5rem);
         text-align: center;
-        margin-top: 1rem;
+        margin-top: 6rem;
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
     }
 
     h4 {
@@ -59,11 +53,11 @@ st.markdown(
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # --- LOGO ---
-logo_path = "logo2.png"  # Make sure this is in the same folder as leaderboard.py
+logo_path = "logo2.png"  # Ensure this is in the same folder as this script
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
@@ -75,9 +69,7 @@ logo_base64 = get_base64_image(logo_path)
 
 st.markdown(
     f"""
-    <div class="logo-wrapper">
-        <img src="data:image/png;base64,{logo_base64}" class="fixed-logo" />
-    </div>
+    <img src="data:image/png;base64,{logo_base64}" class="logo-absolute" />
     """,
     unsafe_allow_html=True
 )
