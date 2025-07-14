@@ -8,34 +8,26 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS: Fixed logo top-left, content padded ---
+# --- CSS FIX: LOGO in top-left of content, NOT fixed on screen ---
 st.markdown(
     """
     <style>
-    /* Logo fixed at viewport top-left */
-    .fixed-logo {
-        position: fixed !important;
-        top: 10px;
-        left: 10px;
-        width: 120px;
-        height: auto;
-        z-index: 10000;
+    .logo-container {
+        float: left;
+        margin-right: 20px;
+        width: min(150px, 25vw);
     }
-    /* Pad main content so it doesn't go under logo */
-    main.css-1d391kg {
-        padding-left: 150px !important;
-        padding-top: 60px !important;
+    @media (max-width: 600px) {
+        .logo-container {
+            width: 80px;
+            margin-right: 10px;
+        }
     }
     h1 {
         font-size: clamp(1.5rem, 5vw, 2.5rem);
         text-align: center;
         margin-top: 2rem;
-    }
-    h4 {
-        font-size: clamp(0.9rem, 3vw, 1.2rem);
-        margin-bottom: 0.3rem;
-        color: #555;
-        font-style: italic;
+        clear: both;
     }
     .leaderboard-container {
         max-width: 600px;
@@ -43,10 +35,6 @@ st.markdown(
         margin-right: auto;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
-    }
-    h2 {
-        margin-top: 3rem !important;
-        font-size: clamp(1.2rem, 4vw, 1.8rem);
     }
     .ag-theme-streamlit {
         border: 1px solid white !important;
@@ -58,7 +46,7 @@ st.markdown(
 )
 
 # --- LOGO ---
-logo_path = r"C:\\Users\\Isaac\\Downloads\\logo2.png"  # adjust path if needed
+logo_path = "logo2.png"  # relative path inside repo
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
@@ -68,16 +56,21 @@ def get_base64_image(image_path):
 
 logo_base64 = get_base64_image(logo_path)
 
+# Render logo in a div floated left
 st.markdown(
-    f'<img src="data:image/png;base64,{logo_base64}" class="fixed-logo" />',
+    f"""
+    <div class="logo-container">
+        <img src="data:image/png;base64,{logo_base64}" style="width:100%; height:auto;" />
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
 # --- TITLE ---
-st.markdown("<h1>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = r"C:\\Users\\Isaac\\Downloads\\leaderboardexport.xlsx"
+excel_path = "leaderboardexport.xlsx"  # relative path inside repo
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
