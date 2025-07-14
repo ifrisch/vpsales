@@ -8,7 +8,7 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- REMOVE STREAMLIT DEFAULT SPACING ---
+# --- UPDATED CSS ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -43,7 +43,7 @@ st.markdown("""
         max-width: 100% !important;
         height: auto !important;
     }
-    
+
     /* Mobile responsiveness */
     @media (max-width: 768px) {
         .stApp {
@@ -75,17 +75,26 @@ st.markdown("""
         div[data-testid="column"] {
             text-align: center !important;
         }
+
+        /* Prevent Streamlit columns from stacking on mobile */
+        /* WARNING: This targets Streamlit's internal column container and might break on Streamlit updates */
+        .css-1lcbmhc.e1fqkh3o3 {
+            flex-direction: row !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- CENTERED LOGO ---
-logo_path = "0005.jpg"  # make sure this file is in your repo folder
+# --- UPDATED LOGO DISPLAY ---
+logo_path = "0005.jpg"  # Make sure this file is in your repo folder
 
-# Create three columns with different proportions for mobile centering
-col1, col2, col3 = st.columns([0.5, 3, 0.5])
-with col2:
-    st.image(logo_path, use_container_width=True)
+# Instead of using columns, use a centered div with markdown + html to guarantee centering on all devices
+st.markdown(f"""
+<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: 1rem;">
+    <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
+        style="max-width: 280px; width: 90%; height: auto;"/>
+</div>
+""", unsafe_allow_html=True)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: -4rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
