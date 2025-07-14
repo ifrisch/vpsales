@@ -30,10 +30,30 @@ st.markdown("""
     div[data-testid="stImage"] {
         margin: -1rem 0px !important;
         padding: 0px !important;
+        text-align: center !important;
     }
     div[data-testid="stImage"] > div {
-        margin: 0px !important;
+        margin: 0px auto !important;
         padding: 0px !important;
+        text-align: center !important;
+    }
+    div[data-testid="stImage"] img {
+        margin: 0 auto !important;
+        display: block !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        div[data-testid="stImage"] img {
+            max-width: 280px !important;
+            width: 90% !important;
+        }
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -41,10 +61,8 @@ st.markdown("""
 # --- CENTERED LOGO ---
 logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
-# Create three columns with the middle one for centering
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.image(logo_path, width=300)
+# Use st.image directly with better centering
+st.image(logo_path, width=300, use_column_width=False)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: -4rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
