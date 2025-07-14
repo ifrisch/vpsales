@@ -8,40 +8,38 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS FIX: LOGO fixed in viewport top-left, content padded to avoid overlap ---
+# --- CSS STYLING ---
 st.markdown(
     """
     <style>
     .fixed-logo {
-        position: absolute;
-        top: 1rem;
-        left: 1rem;
+        display: block;
+        margin-top: 0.5rem;
+        margin-left: 0.5rem;
         width: min(150px, 25vw);
         height: auto;
     }
-    main > div:first-child {
-        margin-left: 170px;
-        margin-top: 20px;
+
+    .logo-wrapper {
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+        margin-bottom: -1rem;
     }
-    @media (max-width: 600px) {
-        .fixed-logo {
-            width: 80px;
-        }
-        main > div:first-child {
-            margin-left: 90px;
-        }
-    }
+
     h1 {
         font-size: clamp(1.5rem, 5vw, 2.5rem);
         text-align: center;
-        margin-top: 2rem;
+        margin-top: 1rem;
     }
+
     h4 {
         font-size: clamp(0.9rem, 3vw, 1.2rem);
         margin-bottom: 0.3rem;
         color: #555;
         font-style: italic;
     }
+
     .leaderboard-container {
         max-width: 600px;
         margin-left: auto;
@@ -49,10 +47,12 @@ st.markdown(
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
+
     h2 {
         margin-top: 3rem !important;
         font-size: clamp(1.2rem, 4vw, 1.8rem);
     }
+
     .ag-theme-streamlit {
         border: 1px solid white !important;
         box-shadow: none !important;
@@ -63,7 +63,7 @@ st.markdown(
 )
 
 # --- LOGO ---
-logo_path = "logo2.png"
+logo_path = "logo2.png"  # Make sure this is in the same folder as leaderboard.py
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
@@ -75,13 +75,15 @@ logo_base64 = get_base64_image(logo_path)
 
 st.markdown(
     f"""
-    <img src="data:image/png;base64,{logo_base64}" class="fixed-logo" />
+    <div class="logo-wrapper">
+        <img src="data:image/png;base64,{logo_base64}" class="fixed-logo" />
+    </div>
     """,
     unsafe_allow_html=True
 )
 
 # --- TITLE ---
-st.markdown("<h1>📊 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
