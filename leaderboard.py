@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image
 import base64
 import os
 from datetime import datetime
@@ -69,47 +68,50 @@ st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Leaderboard
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
 
-def normalize_name(name):
-    name = name.lower()
-    for junk in ["#", "grill", "restaurant", "llc", "inc", "&", ".", ","]:
-        name = name.replace(junk, "")
-    # Remove any non-alphanumeric and non-space chars
-    return ''.join(c for c in name if c.isalnum() or c.isspace()).strip()
-
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
     df.columns = ["New Customer", "Salesrep", "Ignore", "Last Invoice Date"]
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
+    df["Cleaned Customer"] = df["New Customer"].str.strip().str.lower()
 
-    df["Normalized Customer"] = df["New Customer"].apply(normalize_name)
+    # --- Cluster similar customers by fuzzy matching ---
+    customers = df["Cleaned Customer"].tolist()
+    clusters = []
+    assigned = [False]*len(customers)
 
-    used_customers = set()
+    for i, cust in enumerate(customers):
+        if assigned[i]:
+            continue
+        cluster = [i]
+        assigned[i] = True
+        for j in range(i+1, len(customers)):
+            if not assigned[j]:
+                score = fuzz.token_sort_ratio(cust, customers[j])
+                if score >= 85:  # you can adjust threshold
+                    cluster.append(j)
+                    assigned[j] = True
+        clusters.append(cluster)
+
+    # For each cluster pick the row with the latest Last Invoice Date (if any)
     kept_rows = []
     pending_rows = []
 
-    for i, row in df.iterrows():
-        cust_name = row["Normalized Customer"]
-        if cust_name in used_customers:
-            continue
-
-        matches = df[df["Normalized Customer"].apply(
-            lambda x: fuzz.token_sort_ratio(x, cust_name) >= 80)].copy()
-
-        used_customers.update(matches["Normalized Customer"].tolist())
-
-        matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
-        if not matches_with_invoice.empty:
-            best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
-            kept_rows.append(best_match)
+    for cluster in clusters:
+        cluster_rows = df.iloc[cluster]
+        with_invoice = cluster_rows[~cluster_rows["Last Invoice Date"].isna()]
+        if not with_invoice.empty:
+            best_row = with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
+            kept_rows.append(best_row)
         else:
-            pending_rows.append(matches.iloc[0])
+            # pick the first row if no invoice date
+            pending_rows.append(cluster_rows.iloc[0])
 
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # --- LEADERBOARD ---
+    # --- Leaderboard ---
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
@@ -161,10 +163,17 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
+    # --- Last updated timestamp at very bottom ---
+    last_updated = datetime.now()  # Shows current time app is run
+    st.markdown(
+        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        unsafe_allow_html=True
+    )
+
 except FileNotFoundError:
     st.error(f"File not found: {excel_path}")
 except Exception as e:
     st.error(f"An error occurred: {e}")
 
-# --- Close MAIN BLOCK ---
+# --- Close main content block ---
 st.markdown('</div>', unsafe_allow_html=True)
