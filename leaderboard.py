@@ -62,7 +62,7 @@ st.markdown("""
 logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
 # Use st.image directly with better centering
-st.image(logo_path, width=300, use_column_width=False)
+st.image(logo_path, width=300, use_container_width=False)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: -4rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
