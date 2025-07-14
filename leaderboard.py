@@ -13,12 +13,11 @@ st.markdown(
     """
     <style>
     .fixed-logo {
-        position: fixed;
+        position: absolute;
         top: 1rem;
         left: 1rem;
         width: min(150px, 25vw);
         height: auto;
-        z-index: 9999;
     }
     main > div:first-child {
         margin-left: 170px;
