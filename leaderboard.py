@@ -7,7 +7,6 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import re
 
-# --- CSS ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -61,35 +60,38 @@ excel_path = "leaderboardexport.xlsx"
 
 def clean_customer_name(name):
     name = str(name).lower()
-    name = re.sub(r'#\d+', '', name)            # remove #1, #2
+    name = re.sub(r'#\d+', '', name)            # remove #1, #2, etc.
     name = re.sub(r'\bgrill\b', '', name)       # remove "grill"
     name = re.sub(r'[^a-z0-9\s]', '', name)     # remove punctuation
     name = re.sub(r'\s+', ' ', name).strip()    # normalize whitespace
     return name
 
-def cluster_customers(names, threshold=85):
+def assign_clusters(names, threshold=85):
     """
-    Cluster customer names by fuzzy matching with a similarity threshold.
-    Returns a dict mapping original cleaned name -> cluster representative.
+    Assign cluster IDs so that names with fuzzy ratio >= threshold get same cluster.
+    Simple hierarchical clustering approach: 
+    - Initialize clusters empty
+    - For each name, assign to first cluster with matching representative or create new
     """
     clusters = []
+    cluster_ids = {}
+    current_id = 0
+
     for name in names:
-        found_cluster = False
-        for cluster in clusters:
-            # Compare with cluster representative (first member)
-            if fuzz.token_sort_ratio(name, cluster[0]) >= threshold:
+        assigned = False
+        for idx, cluster in enumerate(clusters):
+            rep = cluster[0]
+            score = fuzz.token_sort_ratio(name, rep)
+            if score >= threshold:
                 cluster.append(name)
-                found_cluster = True
+                cluster_ids[name] = idx
+                assigned = True
                 break
-        if not found_cluster:
+        if not assigned:
             clusters.append([name])
-    # Map each name to the representative of its cluster
-    mapping = {}
-    for cluster in clusters:
-        rep = cluster[0]
-        for n in cluster:
-            mapping[n] = rep
-    return mapping
+            cluster_ids[name] = current_id
+            current_id += 1
+    return cluster_ids, clusters
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -98,30 +100,31 @@ try:
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
 
-    # Clean names
     df["Cleaned Customer"] = df["New Customer"].apply(clean_customer_name)
 
-    # Cluster cleaned customers to group similar ones
-    unique_customers = df["Cleaned Customer"].unique()
-    mapping = cluster_customers(unique_customers, threshold=85)
+    unique_names = df["Cleaned Customer"].unique()
+    cluster_ids, clusters = assign_clusters(unique_names, threshold=85)
 
-    # Assign cluster representative as canonical name
-    df["Customer Cluster"] = df["Cleaned Customer"].map(mapping)
+    # Map cluster ID to each cleaned customer
+    df["Cluster ID"] = df["Cleaned Customer"].map(cluster_ids)
 
-    # Now count unique clusters per Salesrep (counting one group as one customer)
-    # Pick latest invoice date per cluster (optional, but good for filtering)
-    grouped = (
-        df.groupby(["Salesrep", "Customer Cluster"])
+    # Optional: show clusters (for debugging)
+    # st.write("Clusters found:")
+    # for i, cluster in enumerate(clusters):
+    #     st.write(f"Cluster {i}: {cluster}")
+
+    # Aggregate to latest invoice date per salesrep per cluster
+    agg_df = (
+        df.groupby(["Salesrep", "Cluster ID"])
         .agg({"Last Invoice Date": "max", "New Customer": "first"})
         .reset_index()
     )
 
-    # Count unique customer clusters per salesrep
     leaderboard = (
-        grouped.groupby("Salesrep")["Customer Cluster"]
+        agg_df.groupby("Salesrep")["Cluster ID"]
         .nunique()
         .reset_index()
-        .rename(columns={"Customer Cluster": "Number of New Customers"})
+        .rename(columns={"Cluster ID": "Number of New Customers"})
         .sort_values("Number of New Customers", ascending=False)
         .reset_index(drop=True)
     )
@@ -146,8 +149,8 @@ try:
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
     st.write(styled_leaderboard)
 
-    # Pending customers: those with no invoice date (still grouped by cluster)
-    pending = grouped[grouped["Last Invoice Date"].isna()]
+    # Pending customers without invoice date
+    pending = agg_df[agg_df["Last Invoice Date"].isna()]
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
     if not pending.empty:
@@ -173,10 +176,8 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
-    # Last updated at very bottom, time when code runs (Central Time)
+    # Show last updated time in Central Time zone
     from pytz import timezone
-    import pytz
-
     central = timezone('US/Central')
     now_central = datetime.now(central)
     st.markdown(
