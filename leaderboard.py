@@ -21,8 +21,8 @@ logo_base64 = get_base64_image(logo_path)
 
 st.markdown(
     f"""
-    <div style="text-align:center; margin-top: 1rem; margin-bottom: 1rem;">
-        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 300px; height: auto;" />
+    <div style="text-align:center; margin-top: 0.2rem; margin-bottom: 0.2rem;">
+         <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 400px; height: auto;" />
     </div>
     """,
     unsafe_allow_html=True,
