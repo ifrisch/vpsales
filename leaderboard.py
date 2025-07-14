@@ -1,64 +1,43 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
+import base64
 from io import BytesIO
 import os
 from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- PAGE HEADER ---
-col1, col2, col3 = st.columns([1, 6, 1])
+# --- Helper function to encode image ---
+def get_base64_image(path):
+    img = Image.open(path)
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
 
-with col1:
-    st.image("logo2.png", width=100)  # Make sure logo2.png is in the same folder
-
-with col2:
-    st.markdown(
-        "<h1 style='text-align:center; margin-bottom:0;'>🏆 Salesrep Leaderboard</h1>",
-        unsafe_allow_html=True
-    )
-
-with col3:
-    st.write("")
-
-# --- STYLING ---
+# --- Display logo in top-left (scrolls away normally) ---
+logo_path = "logo2.png"
 st.markdown(
-    """
-    <style>
-    .leaderboard-container {
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-    h2 {
-        margin-top: 3rem !important;
-        font-size: clamp(1.2rem, 4vw, 1.8rem);
-    }
-    h4 {
-        font-size: clamp(0.9rem, 3vw, 1.2rem);
-        margin-bottom: 0.3rem;
-        color: #555;
-        font-style: italic;
-    }
-    .ag-theme-streamlit {
-        border: 1px solid white !important;
-        box-shadow: none !important;
-    }
-    </style>
+    f"""
+    <div style="display: flex; align-items: flex-start;">
+        <img src="data:image/png;base64,{get_base64_image(logo_path)}" style="width: 100px; height: auto;" />
+    </div>
     """,
     unsafe_allow_html=True
 )
 
-# --- LOAD DATA ---
+# --- Title ---
+st.markdown(
+    "<h1 style='text-align: center; margin-top: 10px;'>🏆 Salesrep Leaderboard</h1>",
+    unsafe_allow_html=True
+)
+
+# --- Load Excel data ---
 excel_path = "leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
     df.columns = ["New Customer", "Salesrep", "Ignore", "Last Invoice Date"]
-
     df = df.dropna(subset=["New Customer", "Salesrep"])
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
@@ -68,7 +47,7 @@ try:
     kept_rows = []
     pending_rows = []
 
-    for _, row in df.iterrows():
+    for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
@@ -86,7 +65,7 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # --- LEADERBOARD ---
+    # --- Leaderboard ---
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
@@ -110,18 +89,15 @@ try:
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
 
-    st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
     st.write(styled_leaderboard)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- LAST UPDATED TIME ---
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
     )
 
-    # --- PENDING CUSTOMERS ---
+    # --- Pending customers ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
     if not df_pending.empty:
