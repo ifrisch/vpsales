@@ -86,7 +86,7 @@ st.markdown("""
 # --- LOGO with tighter bottom margin ---
 logo_path = "0005.jpg"
 st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top: -3rem; margin-bottom: -3rem;">
+<div style="display:flex; justify-content:center; margin-top: -9rem; margin-bottom: -3rem;">
     <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
         style="height:auto;"/>
 </div>
