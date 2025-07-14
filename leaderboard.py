@@ -8,7 +8,7 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- UPDATED CSS ---
+# --- CSS for spacing, centering, and layout fixes ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -27,6 +27,12 @@ st.markdown("""
         margin: 0px !important;
         padding: 0px !important;
     }
+
+    /* Shift entire vertical block upward (title + table) */
+    div[data-testid="stVerticalBlock"] {
+        margin-top: -3.5rem !important;
+    }
+
     div[data-testid="stImage"] {
         margin: -1rem 0px !important;
         padding: 0px !important;
@@ -54,46 +60,29 @@ st.markdown("""
             padding-right: 1rem !important;
             text-align: center !important;
         }
-        div[data-testid="stImage"] {
-            text-align: center !important;
-            width: 100% !important;
-        }
-        div[data-testid="stImage"] > div {
-            text-align: center !important;
-            margin: 0 auto !important;
-            width: 100% !important;
-        }
         div[data-testid="stImage"] img {
-            margin: 0 auto !important;
-            display: block !important;
             max-width: 280px !important;
             width: 90% !important;
         }
         div[data-testid="stVerticalBlock"] {
             text-align: center !important;
-        }
-        div[data-testid="column"] {
-            text-align: center !important;
-        }
-
-        .css-1lcbmhc.e1fqkh3o3 {
-            flex-direction: row !important;
+            margin-top: -2rem !important;
         }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGO with tighter bottom margin ---
+# --- LOGO ---
 logo_path = "0005.jpg"
 st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top: -9rem; margin-bottom: -3rem;">
+<div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: -3rem;">
     <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
         style="height:auto;"/>
 </div>
 """, unsafe_allow_html=True)
 
-# --- TITLE with tighter top margin ---
-st.markdown("<h1 style='margin-top: -5rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
+# --- TITLE ---
+st.markdown("<h1 style='margin-top: 0rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
 excel_path = "leaderboardexport.xlsx"
