@@ -60,19 +60,18 @@ excel_path = "leaderboardexport.xlsx"
 
 def clean_customer_name(name):
     name = str(name).lower()
-    name = re.sub(r'#\d+', '', name)            # remove #1, #2, etc.
-    name = re.sub(r'\bgrill\b', '', name)       # remove "grill"
-    name = re.sub(r'[^a-z0-9\s]', '', name)     # remove punctuation
-    name = re.sub(r'\s+', ' ', name).strip()    # normalize whitespace
+    # Remove digits and # signs (like #1, #2)
+    name = re.sub(r'[#\d]+', '', name)
+    # Remove common business words that can vary
+    common_words = ['grill', 'restaurant', 'inc', 'llc', 'the', 'and', 'co', 'company', 'corp', 'corporation']
+    for w in common_words:
+        name = re.sub(r'\b' + re.escape(w) + r'\b', '', name)
+    # Remove punctuation and extra spaces
+    name = re.sub(r'[^a-z\s]', '', name)
+    name = re.sub(r'\s+', ' ', name).strip()
     return name
 
-def assign_clusters(names, threshold=85):
-    """
-    Assign cluster IDs so that names with fuzzy ratio >= threshold get same cluster.
-    Simple hierarchical clustering approach: 
-    - Initialize clusters empty
-    - For each name, assign to first cluster with matching representative or create new
-    """
+def assign_clusters(names, threshold=80):
     clusters = []
     cluster_ids = {}
     current_id = 0
@@ -80,9 +79,8 @@ def assign_clusters(names, threshold=85):
     for name in names:
         assigned = False
         for idx, cluster in enumerate(clusters):
-            rep = cluster[0]
-            score = fuzz.token_sort_ratio(name, rep)
-            if score >= threshold:
+            # Compare against *all* cluster members, not just first
+            if any(fuzz.token_sort_ratio(name, member) >= threshold for member in cluster):
                 cluster.append(name)
                 cluster_ids[name] = idx
                 assigned = True
@@ -103,17 +101,15 @@ try:
     df["Cleaned Customer"] = df["New Customer"].apply(clean_customer_name)
 
     unique_names = df["Cleaned Customer"].unique()
-    cluster_ids, clusters = assign_clusters(unique_names, threshold=85)
+    cluster_ids, clusters = assign_clusters(unique_names, threshold=80)
 
-    # Map cluster ID to each cleaned customer
     df["Cluster ID"] = df["Cleaned Customer"].map(cluster_ids)
 
-    # Optional: show clusters (for debugging)
-    # st.write("Clusters found:")
-    # for i, cluster in enumerate(clusters):
-    #     st.write(f"Cluster {i}: {cluster}")
+    # Debug: Show clusters
+    st.markdown("### Customer Clusters (Debug)")
+    for i, cluster in enumerate(clusters):
+        st.write(f"Cluster {i} ({len(cluster)} customers): {cluster}")
 
-    # Aggregate to latest invoice date per salesrep per cluster
     agg_df = (
         df.groupby(["Salesrep", "Cluster ID"])
         .agg({"Last Invoice Date": "max", "New Customer": "first"})
@@ -149,7 +145,6 @@ try:
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
     st.write(styled_leaderboard)
 
-    # Pending customers without invoice date
     pending = agg_df[agg_df["Last Invoice Date"].isna()]
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
@@ -176,7 +171,6 @@ try:
     else:
         st.info("No pending customers! 🎉")
 
-    # Show last updated time in Central Time zone
     from pytz import timezone
     central = timezone('US/Central')
     now_central = datetime.now(central)
