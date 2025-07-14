@@ -8,59 +8,21 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- CSS FIX: LOGO in top-left of content, NOT fixed on screen ---
-st.markdown(
-    """
-    <style>
-    .logo-container {
-        float: left;
-        margin-right: 20px;
-        width: min(150px, 25vw);
-    }
-    @media (max-width: 600px) {
-        .logo-container {
-            width: 80px;
-            margin-right: 10px;
-        }
-    }
-    h1 {
-        font-size: clamp(1.5rem, 5vw, 2.5rem);
-        text-align: center;
-        margin-top: 2rem;
-        clear: both;
-    }
-    .leaderboard-container {
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-    .ag-theme-streamlit {
-        border: 1px solid white !important;
-        box-shadow: none !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# --- LOGO ---
-logo_path = "logo2.png"  # relative path inside repo
+# --- CENTERED LOGO ---
+logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
 def get_base64_image(image_path):
     img = Image.open(image_path)
     buffered = BytesIO()
-    img.save(buffered, format="PNG")
+    img.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode()
 
 logo_base64 = get_base64_image(logo_path)
 
-# Render logo in a div floated left
 st.markdown(
     f"""
-    <div class="logo-container">
-        <img src="data:image/png;base64,{logo_base64}" style="width:100%; height:auto;" />
+    <div style="text-align:center; margin-top: 1rem; margin-bottom: 1rem;">
+        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 300px; height: auto;" />
     </div>
     """,
     unsafe_allow_html=True,
