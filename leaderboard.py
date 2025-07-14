@@ -18,148 +18,64 @@ def get_base64_image(image_path):
 logo_path = "0005.jpg"
 logo_base64 = get_base64_image(logo_path)
 
-# --- Inject CSS to remove Streamlit spacing around main container and components ---
+# --- Inject CSS to remove all spacing around main container, image, and title ---
 st.markdown("""
     <style>
-    /* Remove default Streamlit padding/margin around the page */
-    .css-18e3th9, .css-1d391kg {
-        padding-top: 0rem !important;
-        padding-bottom: 0rem !important;
-        margin-top: 0rem !important;
-        margin-bottom: 0rem !important;
+    /* Reset Streamlit's default app padding and margins */
+    .stApp {
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    /* Remove spacing Streamlit puts between elements */
+    /* Remove padding/margin from main container and block container */
+    .main, .block-container, .css-18e3th9, .css-1d391kg {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    /* Ensure no spacing between elements */
     div.block-container > div {
         padding-top: 0 !important;
+        padding-bottom: 0 !important;
         margin-top: 0 !important;
         margin-bottom: 0 !important;
     }
-    /* Tight container for logo and title */
+    /* Style the logo-title container */
     .logo-title-container {
         text-align: center;
-        margin: 0;
-        padding: 0;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
     }
-    /* Remove any default spacing for the image */
+    /* Remove all spacing for the image */
     .logo-title-container img {
         display: block;
-        margin: 0 auto;
-        padding: 0;
+        margin: 0 !important;
+        padding: 0 !important;
         max-width: 300px;
         height: auto;
+        border: none !important;
     }
     /* Remove spacing for the title */
     .logo-title-container h1 {
-        margin: 0;
-        padding: 0;
-        line-height: 1.1;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.1 !important;
+        font-size: 2rem !important;
+    }
+    /* Ensure no extra spacing around markdown elements */
+    .stMarkdown, .stMarkdown > div {
+        margin: 0 !important;
+        padding: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Render logo and title in the same div with zero spacing ---
+# --- Render logo and title with zero spacing ---
 st.markdown(f"""
     <div class="logo-title-container">
-        <img src="data:image/jpeg;base64,{logo_base64}" />
+        <img src="data:image/jpeg;base64,{logo_base64}" alt="Logo" />
         <h1>🏆 Salesrep Leaderboard</h1>
     </div>
 """, unsafe_allow_html=True)
 
-# --- Now your existing leaderboard code below ---
-# (Rest of your code remains unchanged)
-
-excel_path = "leaderboardexport.xlsx"
-
-try:
-    df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
-    df.columns = ["New Customer", "Salesrep", "Ignore", "Last Invoice Date"]
-    df = df.dropna(subset=["New Customer", "Salesrep"])
-    df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
-    df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
-    df["Cleaned Customer"] = df["New Customer"].str.strip().str.lower()
-
-    used_customers = set()
-    kept_rows = []
-    pending_rows = []
-
-    for i, row in df.iterrows():
-        cust_name = row["Cleaned Customer"]
-        if cust_name in used_customers:
-            continue
-
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
-        used_customers.update(matches["Cleaned Customer"].tolist())
-
-        matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
-        if not matches_with_invoice.empty:
-            best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
-            kept_rows.append(best_match)
-        else:
-            pending_rows.append(matches.iloc[0])
-
-    df_cleaned = pd.DataFrame(kept_rows)
-    df_pending = pd.DataFrame(pending_rows)
-
-    leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
-    leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
-    leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
-
-    def ordinal(n):
-        suffixes = {1: "st", 2: "nd", 3: "rd"}
-        if 10 <= n % 100 <= 20:
-            suffix = "th"
-        else:
-            suffix = suffixes.get(n % 10, "th")
-        return f"{n}{suffix}"
-
-    leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
-    leaderboard = leaderboard.set_index("Rank")
-
-    def highlight_first_salesrep(s):
-        styles = pd.DataFrame("", index=s.index, columns=s.columns)
-        if "1st" in s.index:
-            styles.loc["1st", "Salesrep"] = "background-color: yellow; font-weight: bold;"
-        return styles
-
-    styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
-
-    st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
-    st.write(styled_leaderboard)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
-    )
-
-    # --- PENDING CUSTOMERS ---
-    st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
-
-    if not df_pending.empty:
-        for salesrep, group_df in df_pending.groupby("Salesrep"):
-            st.markdown(f"<h4>{salesrep}</h4>", unsafe_allow_html=True)
-            rows = len(group_df)
-            grid_height = 40 + rows * 35
-
-            gb = GridOptionsBuilder.from_dataframe(group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True))
-            gb.configure_grid_options(domLayout='normal')
-            gb.configure_default_column(resizable=True, filter=True, sortable=True)
-            gb.configure_column("Last Invoice Date", hide=True)
-            gridOptions = gb.build()
-
-            AgGrid(
-                group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True),
-                gridOptions=gridOptions,
-                fit_columns_on_grid_load=True,
-                enable_enterprise_modules=False,
-                height=grid_height,
-                theme='streamlit',
-            )
-    else:
-        st.info("No pending customers! 🎉")
-
-except FileNotFoundError:
-    st.error(f"File not found: {excel_path}")
-except Exception as e:
-    st.error(f"An error occurred: {e}")
+# --- Rest of your leaderboard code ---
+# (Append your existing leaderboard code here, starting from excel_path = "leaderboardexport.xlsx")
