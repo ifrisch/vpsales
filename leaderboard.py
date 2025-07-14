@@ -30,7 +30,7 @@ st.markdown("""
 
     /* Shift entire vertical block upward (title + table) */
     div[data-testid="stVerticalBlock"] {
-        margin-top: -7rem !important;
+        margin-top: -20rem !important;
     }
 
     div[data-testid="stImage"] {
