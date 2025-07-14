@@ -8,6 +8,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
+import subprocess
 
 # --- CSS ---
 st.markdown("""
@@ -75,7 +76,6 @@ try:
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
 
-    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].str.lower()
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
@@ -84,14 +84,12 @@ try:
     kept_rows = []
     pending_rows = []
 
-    # Group customers by fuzzy matches (token_set_ratio) >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
         matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
-
         used_customers.update(matches["Cleaned Customer"].tolist())
 
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
@@ -108,22 +106,6 @@ try:
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
-    # Calculate bonuses
-    max_customers = leaderboard["Number of New Customers"].max()
-
-    def calculate_bonus(row, max_cust):
-        bonus = 0
-        if row["Number of New Customers"] >= 3:
-            bonus += 50
-        if row["Number of New Customers"] == max_cust and max_cust > 0:
-            bonus += 100
-        return bonus
-
-    leaderboard["Bonus"] = leaderboard.apply(lambda row: calculate_bonus(row, max_customers), axis=1)
-
-    # Format bonus with $ symbol
-    leaderboard["Bonus"] = leaderboard["Bonus"].apply(lambda x: f"${x}")
-
     def ordinal(n):
         suffixes = {1: "st", 2: "nd", 3: "rd"}
         if 10 <= n % 100 <= 20:
@@ -133,6 +115,17 @@ try:
         return f"{n}{suffix}"
 
     leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
+
+    # --- Add Prize Column ---
+    top_rep = leaderboard.iloc[0]["Salesrep"] if not leaderboard.empty else None
+
+    def calculate_prize(row):
+        base = 50 if row["Number of New Customers"] >= 3 else 0
+        bonus = 100 if row["Salesrep"] == top_rep else 0
+        return f"${base + bonus}"
+
+    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
+
     leaderboard = leaderboard.set_index("Rank")
 
     def highlight_first_salesrep(s):
@@ -179,10 +172,20 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP (Central Time) ---
-central = ZoneInfo("America/Chicago")
-last_updated = datetime.now(central)
-st.markdown(
-    f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-    unsafe_allow_html=True
-)
+# --- LAST UPDATED TIMESTAMP FROM GIT COMMIT (Central Time) ---
+try:
+    timestamp_str = subprocess.check_output(
+        ["git", "log", "-1", "--format=%cd", "--date=iso", "--", "leaderboard.xlsx"],
+        universal_newlines=True
+    ).strip()
+    last_updated = datetime.fromisoformat(timestamp_str).astimezone(ZoneInfo("America/Chicago"))
+    st.markdown(
+        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        unsafe_allow_html=True
+    )
+except Exception as e:
+    st.markdown(
+        "<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: Unknown</div>",
+        unsafe_allow_html=True
+    )
+    st.error(f"Could not get last updated timestamp: {e}")
