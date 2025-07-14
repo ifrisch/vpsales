@@ -82,10 +82,40 @@ st.markdown("""
 # --- CENTERED LOGO ---
 logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
-# Create three columns with different proportions for mobile centering
+# Check if we're on mobile (this is a workaround)
+st.markdown("""
+<style>
+    .logo-desktop { display: block; }
+    .logo-mobile { display: none; }
+    
+    @media (max-width: 768px) {
+        .logo-desktop { display: none; }
+        .logo-mobile { 
+            display: block !important;
+            text-align: center !important;
+            margin: 0 auto !important;
+        }
+        .logo-mobile img {
+            margin: 0 auto !important;
+            display: block !important;
+            max-width: 280px !important;
+            width: 90% !important;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Desktop version with columns
 col1, col2, col3 = st.columns([0.5, 3, 0.5])
 with col2:
+    st.markdown('<div class="logo-desktop">', unsafe_allow_html=True)
     st.image(logo_path, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Mobile version without columns
+st.markdown('<div class="logo-mobile">', unsafe_allow_html=True)
+st.image(logo_path, width=280)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TITLE ---
 st.markdown("<h1 style='margin-top: -4rem; margin-bottom: 1rem;'>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
