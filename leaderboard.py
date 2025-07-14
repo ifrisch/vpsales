@@ -7,22 +7,22 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- HEADER WITH LOGO LEFT AND TITLE CENTERED ---
+# --- PAGE HEADER ---
 col1, col2, col3 = st.columns([1, 6, 1])
 
 with col1:
-    st.image("logo2.png", width=100)  # Adjust width as needed
+    st.image("logo2.png", width=100)  # Make sure logo2.png is in the same folder
 
 with col2:
     st.markdown(
-        "<h1 style='text-align:center; margin-bottom:0;'>🏆 Salesrep Leaderboard</h1>", 
+        "<h1 style='text-align:center; margin-bottom:0;'>🏆 Salesrep Leaderboard</h1>",
         unsafe_allow_html=True
     )
 
 with col3:
-    st.write("")  # Empty for spacing balance
+    st.write("")
 
-# --- CSS for styling the leaderboard container and other elements ---
+# --- STYLING ---
 st.markdown(
     """
     <style>
@@ -53,7 +53,7 @@ st.markdown(
 )
 
 # --- LOAD DATA ---
-excel_path = "leaderboardexport.xlsx"  # Make sure this file is in the same folder
+excel_path = "leaderboardexport.xlsx"
 
 try:
     df = pd.read_excel(excel_path, usecols="A:D", dtype={"A": str, "B": str})
@@ -68,7 +68,7 @@ try:
     kept_rows = []
     pending_rows = []
 
-    for i, row in df.iterrows():
+    for _, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
@@ -86,6 +86,7 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
+    # --- LEADERBOARD ---
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
@@ -113,12 +114,14 @@ try:
     st.write(styled_leaderboard)
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- LAST UPDATED TIME ---
     last_updated = datetime.fromtimestamp(os.path.getmtime(excel_path))
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
     )
 
+    # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
 
     if not df_pending.empty:
