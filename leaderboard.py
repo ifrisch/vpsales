@@ -8,7 +8,7 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# --- UPDATED CSS ---
+# --- UPDATED CSS with different logo sizes for desktop and mobile ---
 st.markdown("""
 <style>
     .stApp > div:first-child {
@@ -40,7 +40,8 @@ st.markdown("""
     div[data-testid="stImage"] img {
         margin: 0 auto !important;
         display: block !important;
-        max-width: 100% !important;
+        max-width: 480px !important;  /* larger max width on desktop */
+        width: 60% !important;        /* responsive width on desktop */
         height: auto !important;
     }
 
@@ -66,7 +67,7 @@ st.markdown("""
         div[data-testid="stImage"] img {
             margin: 0 auto !important;
             display: block !important;
-            max-width: 280px !important;
+            max-width: 280px !important;  /* smaller max width on mobile */
             width: 90% !important;
         }
         div[data-testid="stVerticalBlock"] {
@@ -77,7 +78,6 @@ st.markdown("""
         }
 
         /* Prevent Streamlit columns from stacking on mobile */
-        /* WARNING: This targets Streamlit's internal column container and might break on Streamlit updates */
         .css-1lcbmhc.e1fqkh3o3 {
             flex-direction: row !important;
         }
@@ -88,11 +88,10 @@ st.markdown("""
 # --- UPDATED LOGO DISPLAY ---
 logo_path = "0005.jpg"  # Make sure this file is in your repo folder
 
-# Instead of using columns, use a centered div with markdown + html to guarantee centering on all devices
 st.markdown(f"""
 <div style="display:flex; justify-content:center; margin-top: 0rem; margin-bottom: 1rem;">
     <img src="data:image/jpeg;base64,{base64.b64encode(open(logo_path, "rb").read()).decode()}"
-        style="max-width: 280px; width: 90%; height: auto;"/>
+        style="height:auto;"/>
 </div>
 """, unsafe_allow_html=True)
 
