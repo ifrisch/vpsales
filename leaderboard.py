@@ -78,7 +78,8 @@ try:
         if cust_name in used_customers:
             continue
 
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_sort_ratio(x, cust_name) >= 90)].copy()
+        # ✅ Fuzzy match using partial_ratio and lower threshold
+        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.partial_ratio(x, cust_name) >= 85)].copy()
         used_customers.update(matches["Cleaned Customer"].tolist())
 
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
@@ -115,10 +116,10 @@ try:
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
     st.write(styled_leaderboard)
 
-    # --- DEBUG OUTPUT: See raw vs cleaned names ---
+    # --- DEBUG OUTPUT ---
     st.markdown("### 🔍 Debug: Raw vs Cleaned Customer Names")
     for idx, row in df.iterrows():
-        st.write(f"{row['Salesrep']}:  Raw = '{row['New Customer']}'  →  Cleaned = '{row['Cleaned Customer']}'")
+        st.write(f"{row['Salesrep']}: Raw = '{row['New Customer']}' → Cleaned = '{row['Cleaned Customer']}'")
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
