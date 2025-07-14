@@ -38,7 +38,7 @@ st.markdown("""
             width: 90% !important;
         }
         #main-block {
-            margin-top: -2rem !important;
+            margin-top: -12rem !important;
         }
     }
 
