@@ -17,6 +17,7 @@ st.markdown("""
     .block-container {
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
+        margin-top: -2rem !important;
     }
     .element-container {
         margin: 0px !important;
@@ -26,28 +27,24 @@ st.markdown("""
         margin: 0px !important;
         padding: 0px !important;
     }
+    div[data-testid="stImage"] {
+        margin: -1rem 0px !important;
+        padding: 0px !important;
+    }
+    div[data-testid="stImage"] > div {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- CENTERED LOGO ---
 logo_path = "0005.jpg"  # make sure this file is in your repo folder
 
-def get_base64_image(image_path):
-    img = Image.open(image_path)
-    buffered = BytesIO()
-    img.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode()
-
-logo_base64 = get_base64_image(logo_path)
-
-st.markdown(
-    f"""
-    <div style="text-align:center; margin: 0; padding: 0; line-height: 0;">
-        <img src="data:image/jpeg;base64,{logo_base64}" style="max-width: 300px; height: auto; display: block; margin: 0 auto; padding: 0;" />
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+# Create three columns with the middle one for centering
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.image(logo_path, width=300)
 
 # --- TITLE ---
 st.markdown("<h1>🏆 Salesrep Leaderboard</h1>", unsafe_allow_html=True)
