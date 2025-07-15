@@ -132,27 +132,6 @@ try:
     leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}" if x.is_integer() else f"${x:.2f}")
 
     # Create rank labels with ties
-    ranks = []
-    prev_count = None
-    prev_rank = 0
-    skip = 0
-    for i, count in enumerate(leaderboard["Number of New Customers"], start=1):
-        if count == prev_count:
-            ranks.append(f"{prev_rank}th" if prev_rank > 3 else
-                         {1: "1st", 2: "2nd", 3: "3rd"}.get(prev_rank, f"{prev_rank}th"))
-            skip += 1
-        else:
-            rank_num = i
-            if skip > 0:
-                rank_num = prev_rank + skip + 1
-                skip = 0
-            ranks.append(f"{rank_num}th" if rank_num > 3 else
-                         {1: "1st", 2: "2nd", 3: "3rd"}.get(rank_num, f"{rank_num}th"))
-            prev_rank = rank_num
-            prev_count = count
-
-    # A better way for rank labels that handles ties correctly:
-    # Use pandas rank method with 'min' method and map suffix
     ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
     suffixes = {1: "st", 2: "nd", 3: "rd"}
     def rank_label(n):
@@ -168,16 +147,19 @@ try:
     display_df = display_df.reset_index(drop=True)
 
     # Highlight Salesrep names with first place prize
-    max_customers = leaderboard["Number of New Customers"].max()
-
     def highlight_first_names(s):
+        max_customers = leaderboard["Number of New Customers"].max()
         return [
             "background-color: yellow; font-weight: bold" if
             leaderboard.loc[i, "Number of New Customers"] == max_customers else ""
             for i in s.index
         ]
 
-    styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
+    styled = display_df.style \
+        .apply(highlight_first_names, subset=["Salesrep"], axis=0) \
+        .set_table_styles([
+            {'selector': 'th.row_heading, td.row_heading', 'props': [('color', 'white')]}
+        ])
 
     st.write(styled)
 
