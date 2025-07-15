@@ -45,16 +45,6 @@ st.markdown("""
         display: block;
         margin: 0 auto;
     }
-
-    /* Widen Salesrep column */
-    table.dataframe th:nth-child(2),
-    table.dataframe td:nth-child(2) {
-        min-width: 250px;
-        max-width: 350px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -158,8 +148,6 @@ try:
     display_df = display_df.reset_index(drop=True)
 
     # Highlight Salesrep names with first place prize
-    max_customers = leaderboard["Number of New Customers"].max()
-
     def highlight_first_names(s):
         return [
             "background-color: yellow; font-weight: bold" if
@@ -169,7 +157,7 @@ try:
 
     styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
-    st.markdown(styled.to_html(), unsafe_allow_html=True)
+    st.write(styled)
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
