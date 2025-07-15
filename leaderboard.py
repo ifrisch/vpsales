@@ -59,7 +59,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- MAIN BLOCK START ---
+# --- MAIN CONTENT BLOCK ---
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
 
 # --- TITLE ---
@@ -124,20 +124,21 @@ try:
     # Assign rank with ties
     leaderboard["Rank"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
     suffixes = {1: "st", 2: "nd", 3: "rd"}
-    leaderboard["Rank"] = leaderboard["Rank"].apply(
+    leaderboard["Rank Label"] = leaderboard["Rank"].apply(
         lambda n: f"{n}{suffixes.get(n if n not in [11, 12, 13] else 0, 'th')}"
     )
 
-    # Reorder columns
-    leaderboard = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]]
+    leaderboard = leaderboard.set_index("Rank Label")
+    leaderboard = leaderboard[["Salesrep", "Number of New Customers", "Prize"]]
 
-    # Highlight all first-place rows
-    def highlight_first_place(row):
-        if row["Rank"] == "1st":
-            return ["background-color: yellow; font-weight: bold"] * len(row)
-        return [""] * len(row)
+    # Highlight just the names in yellow for 1st place
+    def highlight_first_names(df):
+        return pd.DataFrame([
+            ["background-color: yellow; font-weight: bold", "", ""] if df.iloc[i]["Number of New Customers"] == max_customers else ["", "", ""]
+            for i in range(len(df))
+        ], columns=df.columns, index=df.index)
 
-    styled_leaderboard = leaderboard.style.apply(highlight_first_place, axis=1)
+    styled_leaderboard = leaderboard.style.apply(highlight_first_names, axis=None)
 
     st.write(styled_leaderboard)
 
