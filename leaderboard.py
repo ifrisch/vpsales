@@ -131,21 +131,19 @@ try:
     # Format Prize column with $ symbol and no decimals if whole number
     leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}" if x.is_integer() else f"${x:.2f}")
 
-    # Create rank labels with ties
+    # Create rank labels with ties using pandas rank method with 'min' and suffixes
     ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
     suffixes = {1: "st", 2: "nd", 3: "rd"}
-
     def rank_label(n):
         if 10 <= n % 100 <= 20:
             return f"{n}th"
         return f"{n}{suffixes.get(n % 10, 'th')}"
-
     ranks = ranks_numeric.apply(rank_label)
+
     leaderboard.insert(0, "Rank", ranks)
 
-    # Prepare DataFrame for display (hide default index)
-    display_df = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]].copy()
-    display_df = display_df.reset_index(drop=True)
+    # Prepare DataFrame for display (reset index so pandas index doesn't show)
+    display_df = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]].reset_index(drop=True)
 
     # Highlight Salesrep names with first place prize
     def highlight_first_names(s):
@@ -157,7 +155,8 @@ try:
 
     styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
-    st.write(styled)
+    # Render styled DataFrame HTML and show via st.markdown to hide index column fully
+    st.markdown(styled.to_html(), unsafe_allow_html=True)
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
