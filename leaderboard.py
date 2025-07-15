@@ -106,7 +106,7 @@ try:
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
-    # Determine prizes
+    # Prize logic
     max_customers = leaderboard["Number of New Customers"].max()
     top_reps = leaderboard[leaderboard["Number of New Customers"] == max_customers]
     num_top_reps = len(top_reps)
@@ -114,33 +114,37 @@ try:
     leaderboard["Prize"] = leaderboard["Number of New Customers"].apply(
         lambda x: 50 if x >= 3 else 0
     )
-
     leaderboard["Prize"] += leaderboard["Number of New Customers"].apply(
         lambda x: 100 / num_top_reps if x == max_customers else 0
     )
-
     leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}")
 
-    # Assign rank with ties
+    # Assign rank with tie support
+    def ordinal(n):
+        if 10 <= n % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+        return f"{n}{suffix}"
+
     leaderboard["Rank"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
-    suffixes = {1: "st", 2: "nd", 3: "rd"}
-    leaderboard["Rank Label"] = leaderboard["Rank"].apply(
-        lambda n: f"{n}{suffixes.get(n if n not in [11, 12, 13] else 0, 'th')}"
+    leaderboard["Rank Label"] = leaderboard["Rank"].apply(ordinal)
+
+    # Reorder columns and drop duplicate index
+    display_df = leaderboard[["Rank Label", "Salesrep", "Number of New Customers", "Prize"]].copy()
+    display_df = display_df.reset_index(drop=True)
+
+    # Highlight all first place salesreps
+    def highlight_first(s):
+        return ["background-color: yellow; font-weight: bold" if val == max_customers else "" for val in s]
+
+    styled = display_df.style.apply(
+        highlight_first, subset=["Number of New Customers"], axis=0
+    ).apply(
+        highlight_first, subset=["Salesrep"], axis=0
     )
 
-    leaderboard = leaderboard.set_index("Rank Label")
-    leaderboard = leaderboard[["Salesrep", "Number of New Customers", "Prize"]]
-
-    # Highlight just the names in yellow for 1st place
-    def highlight_first_names(df):
-        return pd.DataFrame([
-            ["background-color: yellow; font-weight: bold", "", ""] if df.iloc[i]["Number of New Customers"] == max_customers else ["", "", ""]
-            for i in range(len(df))
-        ], columns=df.columns, index=df.index)
-
-    styled_leaderboard = leaderboard.style.apply(highlight_first_names, axis=None)
-
-    st.write(styled_leaderboard)
+    st.write(styled)
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
@@ -176,7 +180,7 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP (Central Time) ---
+# --- LAST UPDATED TIMESTAMP ---
 central = ZoneInfo("America/Chicago")
 last_updated = datetime.now(central)
 st.markdown(
