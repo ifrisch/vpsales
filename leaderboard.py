@@ -164,7 +164,7 @@ try:
     leaderboard.insert(0, "Rank", ranks)
 
     # Prepare DataFrame for display (hide default index)
-    display_df = leaderboard[["Rank Label", "Salesrep", "Number of New Customers", "Prize"]].copy()
+    display_df = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]].copy()
     display_df = display_df.reset_index(drop=True)
 
     # Highlight Salesrep names with first place prize
