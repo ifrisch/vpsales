@@ -134,12 +134,13 @@ try:
     # Create rank labels with ties
     ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
     suffixes = {1: "st", 2: "nd", 3: "rd"}
+
     def rank_label(n):
         if 10 <= n % 100 <= 20:
             return f"{n}th"
         return f"{n}{suffixes.get(n % 10, 'th')}"
-    ranks = ranks_numeric.apply(rank_label)
 
+    ranks = ranks_numeric.apply(rank_label)
     leaderboard.insert(0, "Rank", ranks)
 
     # Prepare DataFrame for display (hide default index)
@@ -148,18 +149,13 @@ try:
 
     # Highlight Salesrep names with first place prize
     def highlight_first_names(s):
-        max_customers = leaderboard["Number of New Customers"].max()
         return [
             "background-color: yellow; font-weight: bold" if
             leaderboard.loc[i, "Number of New Customers"] == max_customers else ""
             for i in s.index
         ]
 
-    styled = display_df.style \
-        .apply(highlight_first_names, subset=["Salesrep"], axis=0) \
-        .set_table_styles([
-            {'selector': 'th.row_heading, td.row_heading', 'props': [('color', 'white')]}
-        ])
+    styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
     st.write(styled)
 
