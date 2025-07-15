@@ -45,6 +45,16 @@ st.markdown("""
         display: block;
         margin: 0 auto;
     }
+
+    /* Widen Salesrep column */
+    table.dataframe th:nth-child(2),
+    table.dataframe td:nth-child(2) {
+        min-width: 250px;
+        max-width: 350px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -131,21 +141,25 @@ try:
     # Format Prize column with $ symbol and no decimals if whole number
     leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}" if x.is_integer() else f"${x:.2f}")
 
-    # Create rank labels with ties using pandas rank method with 'min' and suffixes
+    # Create rank labels with ties
     ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
     suffixes = {1: "st", 2: "nd", 3: "rd"}
+
     def rank_label(n):
         if 10 <= n % 100 <= 20:
             return f"{n}th"
         return f"{n}{suffixes.get(n % 10, 'th')}"
-    ranks = ranks_numeric.apply(rank_label)
 
+    ranks = ranks_numeric.apply(rank_label)
     leaderboard.insert(0, "Rank", ranks)
 
-    # Prepare DataFrame for display (reset index so pandas index doesn't show)
-    display_df = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]].reset_index(drop=True)
+    # Prepare DataFrame for display (hide default index)
+    display_df = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]].copy()
+    display_df = display_df.reset_index(drop=True)
 
     # Highlight Salesrep names with first place prize
+    max_customers = leaderboard["Number of New Customers"].max()
+
     def highlight_first_names(s):
         return [
             "background-color: yellow; font-weight: bold" if
@@ -155,7 +169,6 @@ try:
 
     styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
-    # Render styled DataFrame HTML and show via st.markdown to hide index column fully
     st.markdown(styled.to_html(), unsafe_allow_html=True)
 
     # --- PENDING CUSTOMERS ---
