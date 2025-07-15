@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 import base64
+from io import BytesIO
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
@@ -106,76 +108,41 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
+    # Build leaderboard with prize calculation
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
-    leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
     # Calculate prizes
-    max_customers = leaderboard["Number of New Customers"].max()
-    first_place_winners = leaderboard[leaderboard["Number of New Customers"] == max_customers]
-    num_first_place = len(first_place_winners)
-
-    # Prize per first place winner (split $100 among ties)
-    first_place_prize_each = 100 / num_first_place if num_first_place > 0 else 0
+    max_new_customers = leaderboard["Number of New Customers"].max()
+    leaders = leaderboard[leaderboard["Number of New Customers"] == max_new_customers]
 
     def calc_prize(row):
-        prize = 0
-        if row["Number of New Customers"] >= 3:
-            prize += 50
-        if row["Number of New Customers"] == max_customers:
-            prize += first_place_prize_each
-        return prize
+        base = 50 if row["Number of New Customers"] >= 3 else 0
+        # Split $100 prize if tie
+        if row["Number of New Customers"] == max_new_customers and max_new_customers > 0:
+            split_prize = 100 / len(leaders)
+        else:
+            split_prize = 0
+        return base + split_prize
 
     leaderboard["Prize"] = leaderboard.apply(calc_prize, axis=1)
+    leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${x:.2f}")
 
-    # Format Prize column with $ symbol and no decimals if whole number
-    leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}" if x.is_integer() else f"${x:.2f}")
+    # Create ranking with ties
+    leaderboard["Rank Numeric"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
+    leaderboard = leaderboard.sort_values(by=["Number of New Customers", "Salesrep"], ascending=[False, True])
+    leaderboard["Rank Label"] = leaderboard["Rank Numeric"].astype(str) + leaderboard["Rank Numeric"].apply(
+        lambda n: "th" if 11 <= n <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    )
 
-    # Create rank labels with ties
-    ranks = []
-    prev_count = None
-    prev_rank = 0
-    skip = 0
-    for i, count in enumerate(leaderboard["Number of New Customers"], start=1):
-        if count == prev_count:
-            ranks.append(f"{prev_rank}th" if prev_rank > 3 else
-                         {1: "1st", 2: "2nd", 3: "3rd"}.get(prev_rank, f"{prev_rank}th"))
-            skip += 1
-        else:
-            rank_num = i
-            if skip > 0:
-                rank_num = prev_rank + skip + 1
-                skip = 0
-            ranks.append(f"{rank_num}th" if rank_num > 3 else
-                         {1: "1st", 2: "2nd", 3: "3rd"}.get(rank_num, f"{rank_num}th"))
-            prev_rank = rank_num
-            prev_count = count
-
-    # A better way for rank labels that handles ties correctly:
-    # Use pandas rank method with 'min' method and map suffix
-    ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
-    suffixes = {1: "st", 2: "nd", 3: "rd"}
-    def rank_label(n):
-        if 10 <= n % 100 <= 20:
-            return f"{n}th"
-        return f"{n}{suffixes.get(n % 10, 'th')}"
-    ranks = ranks_numeric.apply(rank_label)
-
-    leaderboard.insert(0, "Rank Label", ranks)
-
-    # Prepare DataFrame for display (hide default index)
+    # Prepare DataFrame for display and hide numeric rank columns
     display_df = leaderboard[["Rank Label", "Salesrep", "Number of New Customers", "Prize"]].copy()
     display_df = display_df.reset_index(drop=True)
 
-    # Highlight Salesrep names with first place prize
-    max_customers = leaderboard["Number of New Customers"].max()
-
+    # Highlight first place Salesreps' names in yellow
     def highlight_first_names(s):
-        return [
-            "background-color: yellow; font-weight: bold" if
-            leaderboard.loc[i, "Number of New Customers"] == max_customers else ""
-            for i in s.index
-        ]
+        is_first = leaderboard["Rank Numeric"] == 1
+        return ["background-color: yellow; font-weight: bold;" if is_first[i] else "" for i in range(len(s))]
 
     styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
@@ -217,7 +184,12 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # --- LAST UPDATED TIMESTAMP (Central Time) ---
 central = ZoneInfo("America/Chicago")
-last_updated = datetime.now(central)
+try:
+    last_modified_timestamp = os.path.getmtime(excel_path)
+    last_updated = datetime.fromtimestamp(last_modified_timestamp, central)
+except Exception:
+    last_updated = datetime.now(central)
+
 st.markdown(
     f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
     unsafe_allow_html=True
