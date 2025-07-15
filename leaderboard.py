@@ -5,7 +5,7 @@ import base64
 from io import BytesIO
 import os
 from datetime import datetime
-from zoneinfo import ZoneInfo  # For Central Time
+from zoneinfo import ZoneInfo
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
@@ -59,7 +59,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- MAIN CONTENT BLOCK ---
+# --- MAIN BLOCK START ---
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
 
 # --- TITLE ---
@@ -104,45 +104,40 @@ try:
 
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
-
-    # --- PRIZE LOGIC ---
-    max_customers = leaderboard["Number of New Customers"].max()
-    num_tied = (leaderboard["Number of New Customers"] == max_customers).sum()
-
-    def calculate_prize(row):
-        prize = 0
-        if row["Number of New Customers"] >= 3:
-            prize += 50
-        if row["Number of New Customers"] == max_customers:
-            prize += 100 / num_tied
-        return f"${int(prize)}"
-
-    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
-
-    # --- RANKING ---
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
-    def ordinal(n):
-        suffixes = {1: "st", 2: "nd", 3: "rd"}
-        if 10 <= n % 100 <= 20:
-            suffix = "th"
-        else:
-            suffix = suffixes.get(n % 10, "th")
-        return f"{n}{suffix}"
+    # Determine prizes
+    max_customers = leaderboard["Number of New Customers"].max()
+    top_reps = leaderboard[leaderboard["Number of New Customers"] == max_customers]
+    num_top_reps = len(top_reps)
 
-    leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
-    leaderboard = leaderboard.set_index("Rank")
+    leaderboard["Prize"] = leaderboard["Number of New Customers"].apply(
+        lambda x: 50 if x >= 3 else 0
+    )
 
-    # --- HIGHLIGHT TOP REPS ---
-    def highlight_first_place(s):
-        styles = pd.DataFrame("", index=s.index, columns=s.columns)
-        top_count = s["Number of New Customers"].max()
-        for idx in s.index:
-            if s.loc[idx, "Number of New Customers"] == top_count:
-                styles.loc[idx, "Salesrep"] = "background-color: yellow; font-weight: bold;"
-        return styles
+    leaderboard["Prize"] += leaderboard["Number of New Customers"].apply(
+        lambda x: 100 / num_top_reps if x == max_customers else 0
+    )
 
-    styled_leaderboard = leaderboard.style.apply(highlight_first_place, axis=None)
+    leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}")
+
+    # Assign rank with ties
+    leaderboard["Rank"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
+    suffixes = {1: "st", 2: "nd", 3: "rd"}
+    leaderboard["Rank"] = leaderboard["Rank"].apply(
+        lambda n: f"{n}{suffixes.get(n if n not in [11, 12, 13] else 0, 'th')}"
+    )
+
+    # Reorder columns
+    leaderboard = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]]
+
+    # Highlight all first-place rows
+    def highlight_first_place(row):
+        if row["Rank"] == "1st":
+            return ["background-color: yellow; font-weight: bold"] * len(row)
+        return [""] * len(row)
+
+    styled_leaderboard = leaderboard.style.apply(highlight_first_place, axis=1)
 
     st.write(styled_leaderboard)
 
@@ -180,14 +175,10 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP (based on file mod time) ---
+# --- LAST UPDATED TIMESTAMP (Central Time) ---
 central = ZoneInfo("America/Chicago")
-try:
-    mod_time = os.path.getmtime(excel_path)
-    last_updated = datetime.fromtimestamp(mod_time, tz=central)
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
-    )
-except Exception:
-    pass
+last_updated = datetime.now(central)
+st.markdown(
+    f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+    unsafe_allow_html=True
+)
