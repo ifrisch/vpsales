@@ -5,7 +5,7 @@ import base64
 from io import BytesIO
 import os
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
@@ -84,7 +84,6 @@ try:
     kept_rows = []
     pending_rows = []
 
-    # Fuzzy matching to group similar customers
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
@@ -105,6 +104,22 @@ try:
 
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
+
+    # --- PRIZE LOGIC ---
+    max_customers = leaderboard["Number of New Customers"].max()
+    num_tied = (leaderboard["Number of New Customers"] == max_customers).sum()
+
+    def calculate_prize(row):
+        prize = 0
+        if row["Number of New Customers"] >= 3:
+            prize += 50
+        if row["Number of New Customers"] == max_customers:
+            prize += 100 / num_tied
+        return f"${int(prize)}"
+
+    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
+
+    # --- RANKING ---
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
     def ordinal(n):
@@ -116,35 +131,19 @@ try:
         return f"{n}{suffix}"
 
     leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
-
-    # Prize Logic
-    top_count = leaderboard["Number of New Customers"].max()
-    top_reps = leaderboard[leaderboard["Number of New Customers"] == top_count]
-    split_prize = 100 / len(top_reps)
-
-    def calculate_prize(row):
-        prize = 0
-        if row["Number of New Customers"] >= 3:
-            prize += 50
-        if row["Number of New Customers"] == top_count:
-            prize += split_prize
-        return f"${int(prize)}"
-
-    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
-
-    # Set Rank as index
     leaderboard = leaderboard.set_index("Rank")
 
-    # --- Highlight all first-place reps ---
+    # --- HIGHLIGHT TOP REPS ---
     def highlight_first_place(s):
         styles = pd.DataFrame("", index=s.index, columns=s.columns)
-	top_count = s["Number of New Customers"].max()
+        top_count = s["Number of New Customers"].max()
         for idx in s.index:
             if s.loc[idx, "Number of New Customers"] == top_count:
                 styles.loc[idx, "Salesrep"] = "background-color: yellow; font-weight: bold;"
         return styles
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_place, axis=None)
+
     st.write(styled_leaderboard)
 
     # --- PENDING CUSTOMERS ---
@@ -181,12 +180,14 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP (based on file modification) ---
-timestamp_path = excel_path
-if os.path.exists(timestamp_path):
-    central = ZoneInfo("America/Chicago")
-    last_modified = datetime.fromtimestamp(os.path.getmtime(timestamp_path), tz=central)
+# --- LAST UPDATED TIMESTAMP (based on file mod time) ---
+central = ZoneInfo("America/Chicago")
+try:
+    mod_time = os.path.getmtime(excel_path)
+    last_updated = datetime.fromtimestamp(mod_time, tz=central)
     st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_modified.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
     )
+except Exception:
+    pass
