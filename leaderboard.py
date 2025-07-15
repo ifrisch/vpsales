@@ -5,10 +5,9 @@ import base64
 from io import BytesIO
 import os
 from datetime import datetime
-from zoneinfo import ZoneInfo  # For Central Time
+from zoneinfo import ZoneInfo
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
-import subprocess
 
 # --- CSS ---
 st.markdown("""
@@ -76,6 +75,7 @@ try:
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
 
+    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].str.lower()
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
@@ -84,6 +84,7 @@ try:
     kept_rows = []
     pending_rows = []
 
+    # Fuzzy matching to group similar customers
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
@@ -116,16 +117,22 @@ try:
 
     leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
 
-    # --- Add Prize Column ---
-    top_rep = leaderboard.iloc[0]["Salesrep"] if not leaderboard.empty else None
+    # Prize Logic
+    top_count = leaderboard["Number of New Customers"].max()
+    top_reps = leaderboard[leaderboard["Number of New Customers"] == top_count]
+    split_prize = 100 / len(top_reps)
 
     def calculate_prize(row):
-        base = 50 if row["Number of New Customers"] >= 3 else 0
-        bonus = 100 if row["Salesrep"] == top_rep else 0
-        return f"${base + bonus}"
+        prize = 0
+        if row["Number of New Customers"] >= 3:
+            prize += 50
+        if row["Number of New Customers"] == top_count:
+            prize += split_prize
+        return f"${int(prize)}"
 
     leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
 
+    # Set Rank as index
     leaderboard = leaderboard.set_index("Rank")
 
     def highlight_first_salesrep(s):
@@ -135,7 +142,6 @@ try:
         return styles
 
     styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
-
     st.write(styled_leaderboard)
 
     # --- PENDING CUSTOMERS ---
@@ -172,20 +178,12 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP FROM GIT COMMIT (Central Time) ---
-try:
-    timestamp_str = subprocess.check_output(
-        ["git", "log", "-1", "--format=%cd", "--date=iso", "--", "leaderboard.xlsx"],
-        universal_newlines=True
-    ).strip()
-    last_updated = datetime.fromisoformat(timestamp_str).astimezone(ZoneInfo("America/Chicago"))
+# --- LAST UPDATED TIMESTAMP (Central Time) ---
+timestamp_path = excel_path  # Timestamp based on Excel file change
+if os.path.exists(timestamp_path):
+    central = ZoneInfo("America/Chicago")
+    last_modified = datetime.fromtimestamp(os.path.getmtime(timestamp_path), tz=central)
     st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_modified.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
     )
-except Exception as e:
-    st.markdown(
-        "<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: Unknown</div>",
-        unsafe_allow_html=True
-    )
-    st.error(f"Could not get last updated timestamp: {e}")
