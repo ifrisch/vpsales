@@ -108,43 +108,60 @@ try:
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
 
-    # Build leaderboard with prize calculation
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
+    leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
+
+    # Add numeric rank to handle ties
+    leaderboard["Rank Numeric"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
+
+    def ordinal(n):
+        suffixes = {1: "st", 2: "nd", 3: "rd"}
+        if 10 <= n % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = suffixes.get(n % 10, "th")
+        return f"{n}{suffix}"
+
+    # Use rank numeric with ties to generate rank column
+    leaderboard["Rank"] = leaderboard["Rank Numeric"].apply(ordinal)
+
+    # Insert Rank as first column
+    leaderboard = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Rank Numeric"]]
 
     # Calculate prizes
-    max_new_customers = leaderboard["Number of New Customers"].max()
-    leaders = leaderboard[leaderboard["Number of New Customers"] == max_new_customers]
+    max_new_accounts = leaderboard["Number of New Customers"].max()
+    num_first_place = (leaderboard["Number of New Customers"] == max_new_accounts).sum()
+    first_place_prize_split = 100 / num_first_place if num_first_place > 0 else 0
 
-    def calc_prize(row):
-        base = 50 if row["Number of New Customers"] >= 3 else 0
-        # Split $100 prize if tie
-        if row["Number of New Customers"] == max_new_customers and max_new_customers > 0:
-            split_prize = 100 / len(leaders)
-        else:
-            split_prize = 0
-        return base + split_prize
+    def calculate_prize(row):
+        prize = 0
+        if row["Number of New Customers"] >= 3:
+            prize += 50
+        if row["Number of New Customers"] == max_new_accounts:
+            prize += first_place_prize_split
+        return prize
 
-    leaderboard["Prize"] = leaderboard.apply(calc_prize, axis=1)
+    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
+
+    # Format Prize column with $ sign and two decimals
     leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${x:.2f}")
 
-    # Create ranking with ties
-    leaderboard["Rank Numeric"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
-    leaderboard = leaderboard.sort_values(by=["Number of New Customers", "Salesrep"], ascending=[False, True])
-    leaderboard["Rank Label"] = leaderboard["Rank Numeric"].astype(str) + leaderboard["Rank Numeric"].apply(
-        lambda n: "th" if 11 <= n <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-    )
+    # Prepare display DataFrame without the helper "Rank Numeric" column
+    display_df = leaderboard.drop(columns=["Rank Numeric"])
 
-    # Prepare DataFrame for display and hide numeric rank columns
-    display_df = leaderboard[["Rank Label", "Salesrep", "Number of New Customers", "Prize"]].copy()
+    # Reset index to hide row numbers on the left
     display_df = display_df.reset_index(drop=True)
 
-    # Highlight first place Salesreps' names in yellow
+    # Highlight first place salesreps' names in yellow and bold
     def highlight_first_names(s):
-        is_first = leaderboard["Rank Numeric"] == 1
-        return ["background-color: yellow; font-weight: bold;" if is_first[i] else "" for i in range(len(s))]
+        # s is the Salesrep column
+        # Find which rows have max number of new customers (first place)
+        first_place_mask = leaderboard["Number of New Customers"] == max_new_accounts
+        # Map to styling list for the Salesrep column
+        return ["background-color: yellow; font-weight: bold;" if first_place_mask.iloc[i] else "" for i in range(len(s))]
 
-    styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
+    styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0)
 
     st.write(styled)
 
@@ -184,12 +201,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # --- LAST UPDATED TIMESTAMP (Central Time) ---
 central = ZoneInfo("America/Chicago")
-try:
-    last_modified_timestamp = os.path.getmtime(excel_path)
-    last_updated = datetime.fromtimestamp(last_modified_timestamp, central)
-except Exception:
-    last_updated = datetime.now(central)
-
+last_updated = datetime.now(central)
 st.markdown(
     f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
     unsafe_allow_html=True
