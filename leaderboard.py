@@ -75,6 +75,7 @@ try:
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
 
+    # Clean customer names
     df["Cleaned Customer"] = df["New Customer"].str.lower()
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'[^\w\s]', '', regex=True)
     df["Cleaned Customer"] = df["Cleaned Customer"].str.replace(r'\s+', ' ', regex=True).str.strip()
@@ -103,9 +104,24 @@ try:
 
     leaderboard = df_cleaned.groupby("Salesrep")["New Customer"].nunique().reset_index()
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
-    leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False)
 
-    # --- RANKING WITH TIES ---
+    # --- PRIZE LOGIC ---
+    max_customers = leaderboard["Number of New Customers"].max()
+    num_tied = (leaderboard["Number of New Customers"] == max_customers).sum()
+
+    def calculate_prize(row):
+        prize = 0
+        if row["Number of New Customers"] >= 3:
+            prize += 50
+        if row["Number of New Customers"] == max_customers:
+            prize += 100 / num_tied
+        return f"${int(prize)}"
+
+    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
+
+    # --- RANKING ---
+    leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
+
     def ordinal(n):
         suffixes = {1: "st", 2: "nd", 3: "rd"}
         if 10 <= n % 100 <= 20:
@@ -114,35 +130,19 @@ try:
             suffix = suffixes.get(n % 10, "th")
         return f"{n}{suffix}"
 
-    leaderboard["Rank Number"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
-    leaderboard["Rank"] = leaderboard["Rank Number"].apply(ordinal)
-    leaderboard = leaderboard.drop(columns="Rank Number")
-
-    # --- PRIZE LOGIC ---
-    top_score = leaderboard["Number of New Customers"].max()
-    num_top_reps = (leaderboard["Number of New Customers"] == top_score).sum()
-    first_place_prize_each = 100 / num_top_reps if num_top_reps > 0 else 0
-
-    def calculate_prize(row):
-        prize = 0
-        if row["Number of New Customers"] >= 3:
-            prize += 50
-        if row["Number of New Customers"] == top_score:
-            prize += first_place_prize_each
-        return f"${int(prize)}"
-
-    leaderboard["Prize"] = leaderboard.apply(calculate_prize, axis=1)
+    leaderboard.insert(0, "Rank", [ordinal(i + 1) for i in range(len(leaderboard))])
     leaderboard = leaderboard.set_index("Rank")
 
-    # --- HIGHLIGHT FIRST PLACE ---
-    def highlight_first_salesreps(s):
-        top_ranks = leaderboard.index[leaderboard["Number of New Customers"] == top_score].tolist()
+    # --- HIGHLIGHT TOP REPS ---
+    def highlight_first_place(s):
         styles = pd.DataFrame("", index=s.index, columns=s.columns)
-        for rank in top_ranks:
-            styles.loc[rank, "Salesrep"] = "background-color: yellow; font-weight: bold;"
+        top_count = s["Number of New Customers"].max()
+        for idx in s.index:
+            if s.loc[idx, "Number of New Customers"] == top_count:
+                styles.loc[idx, "Salesrep"] = "background-color: yellow; font-weight: bold;"
         return styles
 
-    styled_leaderboard = leaderboard.style.apply(highlight_first_salesreps, axis=None)
+    styled_leaderboard = leaderboard.style.apply(highlight_first_place, axis=None)
 
     st.write(styled_leaderboard)
 
@@ -181,12 +181,13 @@ except Exception as e:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # --- LAST UPDATED TIMESTAMP (based on file mod time) ---
+central = ZoneInfo("America/Chicago")
 try:
     mod_time = os.path.getmtime(excel_path)
-    last_updated = datetime.fromtimestamp(mod_time, ZoneInfo("America/Chicago"))
+    last_updated = datetime.fromtimestamp(mod_time, tz=central)
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
     )
-except:
+except Exception:
     pass
