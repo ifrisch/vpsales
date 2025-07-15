@@ -2,10 +2,8 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 import base64
-from io import BytesIO
-import os
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 
@@ -84,19 +82,25 @@ try:
     kept_rows = []
     pending_rows = []
 
+    # We'll iterate through all rows, grouping customers by fuzzy matches (token_set_ratio) >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
+        # Find all rows with fuzzy token_set_ratio >= 85
         matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
+
+        # Mark all matched cleaned customers as used
         used_customers.update(matches["Cleaned Customer"].tolist())
 
+        # If any matched rows have an invoice date, pick the latest one for keeping
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
         if not matches_with_invoice.empty:
             best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
             kept_rows.append(best_match)
         else:
+            # If none have invoice dates, just take the first match row
             pending_rows.append(matches.iloc[0])
 
     df_cleaned = pd.DataFrame(kept_rows)
@@ -106,43 +110,74 @@ try:
     leaderboard = leaderboard.rename(columns={"New Customer": "Number of New Customers"})
     leaderboard = leaderboard.sort_values(by="Number of New Customers", ascending=False).reset_index(drop=True)
 
-    # Prize logic
+    # Calculate prizes
     max_customers = leaderboard["Number of New Customers"].max()
-    top_reps = leaderboard[leaderboard["Number of New Customers"] == max_customers]
-    num_top_reps = len(top_reps)
+    first_place_winners = leaderboard[leaderboard["Number of New Customers"] == max_customers]
+    num_first_place = len(first_place_winners)
 
-    leaderboard["Prize"] = leaderboard["Number of New Customers"].apply(
-        lambda x: 50 if x >= 3 else 0
-    )
-    leaderboard["Prize"] += leaderboard["Number of New Customers"].apply(
-        lambda x: 100 / num_top_reps if x == max_customers else 0
-    )
-    leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}")
+    # Prize per first place winner (split $100 among ties)
+    first_place_prize_each = 100 / num_first_place if num_first_place > 0 else 0
 
-    # Assign rank with tie support
-    def ordinal(n):
-        if 10 <= n % 100 <= 20:
-            suffix = "th"
+    def calc_prize(row):
+        prize = 0
+        if row["Number of New Customers"] >= 3:
+            prize += 50
+        if row["Number of New Customers"] == max_customers:
+            prize += first_place_prize_each
+        return prize
+
+    leaderboard["Prize"] = leaderboard.apply(calc_prize, axis=1)
+
+    # Format Prize column with $ symbol and no decimals if whole number
+    leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}" if x.is_integer() else f"${x:.2f}")
+
+    # Create rank labels with ties
+    ranks = []
+    prev_count = None
+    prev_rank = 0
+    skip = 0
+    for i, count in enumerate(leaderboard["Number of New Customers"], start=1):
+        if count == prev_count:
+            ranks.append(f"{prev_rank}th" if prev_rank > 3 else
+                         {1: "1st", 2: "2nd", 3: "3rd"}.get(prev_rank, f"{prev_rank}th"))
+            skip += 1
         else:
-            suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-        return f"{n}{suffix}"
+            rank_num = i
+            if skip > 0:
+                rank_num = prev_rank + skip + 1
+                skip = 0
+            ranks.append(f"{rank_num}th" if rank_num > 3 else
+                         {1: "1st", 2: "2nd", 3: "3rd"}.get(rank_num, f"{rank_num}th"))
+            prev_rank = rank_num
+            prev_count = count
 
-    leaderboard["Rank"] = leaderboard["Number of New Customers"].rank(method="min", ascending=False).astype(int)
-    leaderboard["Rank Label"] = leaderboard["Rank"].apply(ordinal)
+    # A better way for rank labels that handles ties correctly:
+    # Use pandas rank method with 'min' method and map suffix
+    ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
+    suffixes = {1: "st", 2: "nd", 3: "rd"}
+    def rank_label(n):
+        if 10 <= n % 100 <= 20:
+            return f"{n}th"
+        return f"{n}{suffixes.get(n % 10, 'th')}"
+    ranks = ranks_numeric.apply(rank_label)
 
-    # Reorder columns and drop duplicate index
+    leaderboard.insert(0, "Rank Label", ranks)
+
+    # Prepare DataFrame for display (hide default index)
     display_df = leaderboard[["Rank Label", "Salesrep", "Number of New Customers", "Prize"]].copy()
     display_df = display_df.reset_index(drop=True)
 
-    # Highlight all first place salesreps
-    def highlight_first(s):
-        return ["background-color: yellow; font-weight: bold" if val == max_customers else "" for val in s]
+    # Highlight Salesrep names with first place prize
+    max_customers = leaderboard["Number of New Customers"].max()
 
-    styled = display_df.style.apply(
-        highlight_first, subset=["Number of New Customers"], axis=0
-    ).apply(
-        highlight_first, subset=["Salesrep"], axis=0
-    )
+    def highlight_first_names(s):
+        return [
+            "background-color: yellow; font-weight: bold" if
+            leaderboard.loc[i, "Number of New Customers"] == max_customers else ""
+            for i in s.index
+        ]
+
+    styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
     st.write(styled)
 
@@ -180,7 +215,7 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP ---
+# --- LAST UPDATED TIMESTAMP (Central Time) ---
 central = ZoneInfo("America/Chicago")
 last_updated = datetime.now(central)
 st.markdown(
