@@ -138,8 +138,9 @@ try:
     # --- Highlight all first-place reps ---
     def highlight_first_place(s):
         styles = pd.DataFrame("", index=s.index, columns=s.columns)
+	top_count = s["Number of New Customers"].max()
         for idx in s.index:
-            if "1st" in idx:
+            if s.loc[idx, "Number of New Customers"] == top_count:
                 styles.loc[idx, "Salesrep"] = "background-color: yellow; font-weight: bold;"
         return styles
 
