@@ -135,13 +135,15 @@ try:
     # Set Rank as index
     leaderboard = leaderboard.set_index("Rank")
 
-    def highlight_first_salesrep(s):
+    # --- Highlight all first-place reps ---
+    def highlight_first_place(s):
         styles = pd.DataFrame("", index=s.index, columns=s.columns)
-        if "1st" in s.index:
-            styles.loc["1st", "Salesrep"] = "background-color: yellow; font-weight: bold;"
+        for idx in s.index:
+            if "1st" in idx:
+                styles.loc[idx, "Salesrep"] = "background-color: yellow; font-weight: bold;"
         return styles
 
-    styled_leaderboard = leaderboard.style.apply(highlight_first_salesrep, axis=None)
+    styled_leaderboard = leaderboard.style.apply(highlight_first_place, axis=None)
     st.write(styled_leaderboard)
 
     # --- PENDING CUSTOMERS ---
@@ -178,8 +180,8 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LAST UPDATED TIMESTAMP (Central Time) ---
-timestamp_path = excel_path  # Timestamp based on Excel file change
+# --- LAST UPDATED TIMESTAMP (based on file modification) ---
+timestamp_path = excel_path
 if os.path.exists(timestamp_path):
     central = ZoneInfo("America/Chicago")
     last_modified = datetime.fromtimestamp(os.path.getmtime(timestamp_path), tz=central)
