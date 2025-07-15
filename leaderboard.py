@@ -17,14 +17,17 @@ st.markdown("""
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
     }
+
     #logo-block {
         margin-top: -6rem;
         margin-bottom: -10rem;
         text-align: center;
     }
+
     #main-block {
         margin-top: -12rem;
     }
+
     @media (max-width: 768px) {
         #logo-block img {
             max-width: 280px !important;
@@ -34,12 +37,23 @@ st.markdown("""
             margin-top: -20rem !important;
         }
     }
+
     img.logo-img {
         max-width: 480px;
         width: 60%;
         height: auto;
         display: block;
         margin: 0 auto;
+    }
+
+    /* Widen Salesrep column */
+    table.dataframe th:nth-child(2),
+    table.dataframe td:nth-child(2) {
+        min-width: 250px;
+        max-width: 350px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -78,21 +92,25 @@ try:
     kept_rows = []
     pending_rows = []
 
-    # Group customers by fuzzy matches (token_set_ratio) >= 85
+    # We'll iterate through all rows, grouping customers by fuzzy matches (token_set_ratio) >= 85
     for i, row in df.iterrows():
         cust_name = row["Cleaned Customer"]
         if cust_name in used_customers:
             continue
 
+        # Find all rows with fuzzy token_set_ratio >= 85
         matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
 
+        # Mark all matched cleaned customers as used
         used_customers.update(matches["Cleaned Customer"].tolist())
 
+        # If any matched rows have an invoice date, pick the latest one for keeping
         matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
         if not matches_with_invoice.empty:
             best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
             kept_rows.append(best_match)
         else:
+            # If none have invoice dates, just take the first match row
             pending_rows.append(matches.iloc[0])
 
     df_cleaned = pd.DataFrame(kept_rows)
@@ -107,6 +125,7 @@ try:
     first_place_winners = leaderboard[leaderboard["Number of New Customers"] == max_customers]
     num_first_place = len(first_place_winners)
 
+    # Prize per first place winner (split $100 among ties)
     first_place_prize_each = 100 / num_first_place if num_first_place > 0 else 0
 
     def calc_prize(row):
@@ -118,9 +137,11 @@ try:
         return prize
 
     leaderboard["Prize"] = leaderboard.apply(calc_prize, axis=1)
+
+    # Format Prize column with $ symbol and no decimals if whole number
     leaderboard["Prize"] = leaderboard["Prize"].apply(lambda x: f"${int(x)}" if x.is_integer() else f"${x:.2f}")
 
-    # Create rank labels with ties using pandas rank
+    # Create rank labels with ties
     ranks_numeric = leaderboard["Number of New Customers"].rank(method='min', ascending=False).astype(int)
     suffixes = {1: "st", 2: "nd", 3: "rd"}
 
@@ -129,41 +150,26 @@ try:
             return f"{n}th"
         return f"{n}{suffixes.get(n % 10, 'th')}"
 
-    leaderboard.insert(0, "Rank", ranks_numeric.apply(rank_label))
+    ranks = ranks_numeric.apply(rank_label)
+    leaderboard.insert(0, "Rank", ranks)
 
-    # Prepare DataFrame for AgGrid display
+    # Prepare DataFrame for display (hide default index)
     display_df = leaderboard[["Rank", "Salesrep", "Number of New Customers", "Prize"]].copy()
+    display_df = display_df.reset_index(drop=True)
 
-    # --- AGGRID OPTIONS ---
-    gb = GridOptionsBuilder.from_dataframe(display_df)
-    gb.configure_column("Salesrep", minWidth=250, maxWidth=350)
-    gb.configure_column("Rank", minWidth=80, maxWidth=100)
-    gb.configure_column("Number of New Customers", minWidth=150, maxWidth=180)
-    gb.configure_column("Prize", minWidth=100, maxWidth=130)
-    gb.configure_grid_options(domLayout='normal')
-    gb.configure_default_column(resizable=True, filter=True, sortable=True)
-    gridOptions = gb.build()
+    # Highlight Salesrep names with first place prize
+    max_customers = leaderboard["Number of New Customers"].max()
 
-    # --- HIGHLIGHT FIRST PLACE SALESREPS (yellow background for Salesrep) ---
-    def cell_style(params):
-        max_customers = leaderboard["Number of New Customers"].max()
-        if params['colDef']['field'] == 'Salesrep' and params['data']['Number of New Customers'] == max_customers:
-            return {'backgroundColor': 'yellow', 'fontWeight': 'bold'}
-        return {}
+    def highlight_first_names(s):
+        return [
+            "background-color: yellow; font-weight: bold" if
+            leaderboard.loc[i, "Number of New Customers"] == max_customers else ""
+            for i in s.index
+        ]
 
-    # Inject cellStyle function
-    gridOptions['getRowStyle'] = {
-        "function": "function(params) { if(params.data['Number of New Customers'] === %d) {return {'background-color':'yellow', 'font-weight':'bold'};} else {return {};}}" % max_customers
-    }
+    styled = display_df.style.apply(highlight_first_names, subset=["Salesrep"], axis=0).hide(axis="index")
 
-    AgGrid(
-        display_df,
-        gridOptions=gridOptions,
-        fit_columns_on_grid_load=True,
-        enable_enterprise_modules=False,
-        height=400,
-        theme='streamlit',
-    )
+    st.markdown(styled.to_html(), unsafe_allow_html=True)
 
     # --- PENDING CUSTOMERS ---
     st.markdown("<h2>⏲ Pending Customers</h2>", unsafe_allow_html=True)
@@ -174,15 +180,15 @@ try:
             rows = len(group_df)
             grid_height = 40 + rows * 35
 
-            gb_pending = GridOptionsBuilder.from_dataframe(group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True))
-            gb_pending.configure_grid_options(domLayout='normal')
-            gb_pending.configure_default_column(resizable=True, filter=True, sortable=True)
-            gb_pending.configure_column("Last Invoice Date", hide=True)
-            gridOptions_pending = gb_pending.build()
+            gb = GridOptionsBuilder.from_dataframe(group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True))
+            gb.configure_grid_options(domLayout='normal')
+            gb.configure_default_column(resizable=True, filter=True, sortable=True)
+            gb.configure_column("Last Invoice Date", hide=True)
+            gridOptions = gb.build()
 
             AgGrid(
                 group_df[["New Customer", "Last Invoice Date"]].reset_index(drop=True),
-                gridOptions=gridOptions_pending,
+                gridOptions=gridOptions,
                 fit_columns_on_grid_load=True,
                 enable_enterprise_modules=False,
                 height=grid_height,
