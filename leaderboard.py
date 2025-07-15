@@ -161,7 +161,7 @@ try:
         return f"{n}{suffixes.get(n % 10, 'th')}"
     ranks = ranks_numeric.apply(rank_label)
 
-    leaderboard.insert(0, "Rank Label", ranks)
+    leaderboard.insert(0, "Rank", ranks)
 
     # Prepare DataFrame for display (hide default index)
     display_df = leaderboard[["Rank Label", "Salesrep", "Number of New Customers", "Prize"]].copy()
