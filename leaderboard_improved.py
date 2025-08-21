@@ -65,6 +65,9 @@ st.markdown(f"""
 # --- MAIN CONTENT BLOCK ---
 st.markdown('<div id="main-block">', unsafe_allow_html=True)
 
+# --- PAGE TITLE ---
+st.markdown("<h1 style='text-align: center; margin-top: 0rem; margin-bottom: 1.5rem; color: #333; font-family: Futura, sans-serif;'>Sales Incentive</h1>", unsafe_allow_html=True)
+
 # --- OVERVIEW SECTION ---
 st.markdown("""
 <div style='
@@ -75,14 +78,11 @@ st.markdown("""
     border-radius: 5px;
     font-family: Futura, sans-serif;
 '>
-    <h3 style='margin-top: 0; color: #495057;'>Incentive Overview</h3>
-    <ul style='margin-bottom: 15px;'>
+    <h3 style='margin-top: 0; color: #495057;'>🎯 Incentive Overview</h3>
+    <ul style='margin-bottom: 0;'>
         <li><strong>$50 Bonus:</strong> For every rep who secures 3+ new accounts</li>
-        <li><strong>$100 Top Performer:</strong> Additional prize for the rep with the most new accounts</li>
+        <li><strong>$100 Top Performer:</strong> Additional prize for the rep with the most new accounts (plus $50 if 3+ accounts)</li>
     </ul>
-    <div style='font-size: 11px; color: #999; border-top: 1px solid #ddd; padding-top: 12px; margin-top: 12px;'>
-        <strong>Note:</strong> New ownership, new management, and name changes do not count as new accounts. Accounts must have at least 1 order to qualify.
-    </div>
     <div style='margin-top: 15px; text-align: center; font-weight: bold; color: #666;'>
         📅 Incentive Period: June 27th - September 19th
     </div>
@@ -275,21 +275,9 @@ except Exception as e:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # --- LAST UPDATED TIMESTAMP (Central Time) ---
-import os
 central = ZoneInfo("America/Chicago")
-
-# Get the Excel file's last modification time
-try:
-    excel_mod_time = os.path.getmtime(excel_path)
-    # Convert to Central Time
-    last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>Data last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
-    )
-except FileNotFoundError:
-    # Fallback if Excel file doesn't exist
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>Data file not found</div>",
-        unsafe_allow_html=True
-    )
+last_updated = datetime.now(central)
+st.markdown(
+    f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>Last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+    unsafe_allow_html=True
+)
