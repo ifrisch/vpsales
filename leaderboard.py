@@ -338,8 +338,14 @@ try:
                     for _, row in group_df.iterrows():
                         customer_num = row["Customer Number"] if pd.notna(row["Customer Number"]) else "N/A"
                         customer_display = f"{row['New Customer']} ({customer_num})"
-                        violation_reason = row["Rule Violation"] if pd.notna(row["Rule Violation"]) else "Unspecified violation"
-                        st.markdown(f"• **{customer_display}** - *{violation_reason}*")
+                        # Check if this is a duplicate (no specific violation text) or an actual violation
+                        violation_reason = row["Rule Violation"] if pd.notna(row["Rule Violation"]) and row["Rule Violation"] != "" and row["Rule Violation"] != "Prospect" else ""
+                        
+                        if violation_reason:
+                            st.markdown(f"• **{customer_display}** - *{violation_reason}*")
+                        else:
+                            # This is likely a duplicate customer
+                            st.markdown(f"• **{customer_display}** - *Duplicate customer*")
         else:
             st.info("No rule violations found! ✅")
 
