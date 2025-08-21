@@ -80,8 +80,8 @@ st.markdown("""
         <li><strong>$50 Bonus:</strong> For every rep who secures 3+ new accounts</li>
         <li><strong>$100 Top Performer:</strong> Additional prize for the rep with the most new accounts</li>
     </ul>
-    <div style='font-size: 11px; color: #999; border-top: 1px solid #ddd; padding-top: 12px; margin-top: 12px;'>
-        <strong>Note:</strong> New ownership, new management, and name changes do not count as new accounts. Accounts must have at least 1 order to qualify.
+    <div style='font-size: 11px; color: #999; border-top: 1px solid #ddd; padding-top: 12px; margin-top: 12px; line-height: 1.4;'>
+        <strong>Note:</strong> New ownership, new management, and name changes do not count as new accounts. Accounts must have at least 1 order to qualify. Additional ship-tos or separate customers associated with the same primary business do not count as additional customers.
     </div>
     <div style='margin-top: 15px; text-align: center; font-weight: bold; color: #666;'>
         📅 Incentive Period: June 27th - September 19th
