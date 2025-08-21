@@ -194,6 +194,7 @@ except Exception as e:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # --- LAST UPDATED TIMESTAMP (Central Time) ---
+# Refreshed on August 21, 2025
 central = ZoneInfo("America/Chicago")
 last_updated = datetime.now(central)
 st.markdown(
