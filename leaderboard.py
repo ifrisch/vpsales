@@ -93,7 +93,7 @@ st.markdown("""
 st.markdown("<h3 style='margin-bottom: 0.5rem; color: #333; font-family: Futura, sans-serif;'>🏆 Current Standings</h3>", unsafe_allow_html=True)
 
 # --- LOAD DATA ---
-excel_path = "leaderboard.xlsx"
+excel_path = "leaderboard_new.xlsx"  # Using fresh Van Paper data from 8:55 AM email
 
 try:
     # Read the Excel file with the correct column names
