@@ -1,0 +1,28 @@
+# Outlook Automation Configuration
+# Edit these values to match your email setup
+
+[EMAIL_SETTINGS]
+# Email address of the sender (leave empty for any sender)
+SENDER_EMAIL = noreply@vanpaper.com
+
+# Text that should be in the subject line (leave empty for any subject)
+SUBJECT_CONTAINS = Inform Auto Scheduled Report: leaderboardexport
+
+# Text that should be in the attachment filename (leave empty for any Excel file)
+ATTACHMENT_NAME_CONTAINS = 
+
+# How many days back to search for emails
+DAYS_BACK = 3
+
+[AUTOMATION_SETTINGS]
+# Automatically update git repository and live app (True/False)
+AUTO_UPDATE_GIT = True
+
+# Create backups of old files (True/False)
+CREATE_BACKUPS = True
+
+[SCHEDULE_SETTINGS]
+# If you want to run this on a schedule, these are example times
+# You'll need to set up Windows Task Scheduler separately
+# DAILY_RUN_TIME = 09:00
+# WEEKLY_RUN_DAY = Monday
