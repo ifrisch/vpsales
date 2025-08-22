@@ -83,39 +83,67 @@ class OutlookAutomation:
             return None, None
     
     def search_for_emails(self, namespace, sender_email=None, subject_contains=None, days_back=1):
-        """Search for emails with Excel attachments."""
+        """Search for emails with Excel attachments - optimized for speed."""
         try:
             inbox = namespace.GetDefaultFolder(6)  # 6 = Inbox
+            messages = inbox.Items
             
-            # Build search criteria
-            search_criteria = []
-            
-            # Date filter - only look at recent emails
-            date_filter = (datetime.datetime.now() - datetime.timedelta(days=days_back)).strftime("%m/%d/%Y")
-            search_criteria.append(f"[ReceivedTime] >= '{date_filter}'")
-            
-            # Sender filter
-            if sender_email:
-                search_criteria.append(f"[SenderEmailAddress] = '{sender_email}'")
-            
-            # Subject filter
-            if subject_contains:
-                search_criteria.append(f"[Subject] LIKE '%{subject_contains}%'")
-            
-            # Combine criteria
-            filter_string = " AND ".join(search_criteria) if search_criteria else None
-            
-            if filter_string:
-                messages = inbox.Items.Restrict(filter_string)
-                logging.info(f"Found {len(messages)} messages matching criteria")
-            else:
-                messages = inbox.Items
-                logging.info("Searching all recent messages for Excel attachments")
-            
-            # Sort by received time (newest first)
+            # Sort by received time (newest first) - this helps us find recent emails faster
             messages.Sort("[ReceivedTime]", True)
             
-            return messages
+            # Calculate cutoff date
+            cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
+            logging.info(f"Looking for emails since {cutoff_date.strftime('%Y-%m-%d %H:%M')}")
+            
+            # Limit search to reasonable number of recent emails to avoid timeout
+            max_emails_to_check = 50  # Only check the 50 most recent emails
+            filtered_messages = []
+            checked_count = 0
+            
+            for message in messages:
+                try:
+                    checked_count += 1
+                    
+                    # Stop if we've checked enough emails or if emails are too old
+                    if checked_count > max_emails_to_check:
+                        logging.info(f"Stopped after checking {max_emails_to_check} emails")
+                        break
+                        
+                    # If email is older than our cutoff, stop (since they're sorted by date)
+                    if message.ReceivedTime < cutoff_date:
+                        logging.info(f"Reached emails older than {days_back} days, stopping search")
+                        break
+                    
+                    # Check sender (if specified)
+                    if sender_email:
+                        sender_match = (
+                            sender_email.lower() in message.SenderEmailAddress.lower() or
+                            sender_email.lower() in getattr(message, 'SenderName', '').lower()
+                        )
+                        if not sender_match:
+                            continue
+                    
+                    # Check subject (if specified)
+                    if subject_contains:
+                        subject_match = subject_contains.lower() in message.Subject.lower()
+                        if not subject_match:
+                            continue
+                    
+                    # If we get here, this email matches our criteria
+                    filtered_messages.append(message)
+                    logging.info(f"✅ Found matching email #{len(filtered_messages)}: '{message.Subject}' from {message.SenderEmailAddress}")
+                    
+                    # If we find what we're looking for, we can stop early for speed
+                    if len(filtered_messages) >= 3:  # Stop after finding 3 matching emails
+                        logging.info("Found enough matching emails, stopping search")
+                        break
+                    
+                except Exception as e:
+                    # Skip problematic messages and continue
+                    continue
+            
+            logging.info(f"Search complete: checked {checked_count} emails, found {len(filtered_messages)} matches")
+            return filtered_messages
             
         except Exception as e:
             logging.error(f"Error searching emails: {e}")

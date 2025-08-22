@@ -12,7 +12,7 @@ SUBJECT_CONTAINS = Inform Auto Scheduled Report: leaderboardexport
 ATTACHMENT_NAME_CONTAINS = 
 
 # How many days back to search for emails
-DAYS_BACK = 3
+DAYS_BACK = 1
 
 [AUTOMATION_SETTINGS]
 # Automatically update git repository and live app (True/False)
