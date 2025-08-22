@@ -1,0 +1,47 @@
+[14:03:58.78] Van Paper Automation Starting... 
+Traceback (most recent call last):
+  File "C:\Users\Isaac\OneDrive - Van Paper Company\Python_Projects\Sales_Leaderboard\business_hours_automation.py", line 285, in <module>
+    success = main()
+  File "C:\Users\Isaac\OneDrive - Van Paper Company\Python_Projects\Sales_Leaderboard\business_hours_automation.py", line 231, in main
+    print("\U0001f550 Van Paper Business Hours Email Automation")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Isaac\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f550' in position 0: character maps to <undefined>
+[14:03:59.25] Van Paper Automation Complete 
+[2025-08-22 02:05:48 PM] INFO: No new Van Paper emails found
+[14:06:37.40] Van Paper Automation Starting... 
+C:\Users\Isaac\AppData\Local\Programs\Python\Python313\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+Van Paper Business Hours Email Automation
+==================================================
+Scan time: 2025-08-22 02:06:37 PM CST
+ Configuration loaded
+ Business Hours Van Paper Email Scan...
+ Current time: 02:06 PM CST
+ Connected to Outlook
+ Looking for Van Paper emails since 11:06 AM
+ FOUND Van Paper email!
+    Received: 01:04 PM
+    Subject: Inform Auto Scheduled Report: leaderboardexport
+    Excel file: 1943647018454082225.XLSX
+
+ Processing Van Paper email...
+ Saving Excel attachment...
+ Excel verified: 30 rows, 5 columns
+ Columns: ['Customer Name', 'Salesperson', 'Prospect', 'Last Invoice Date', 'Customer Number']
+ Created backup: leaderboard_backup_20250822_140637.xlsx
+ Updated leaderboard_new.xlsx
+
+ Updating live Streamlit app...
+ Adding files to git...
+ Committing: Auto-update from Van Paper report 2025-08-22 01:04 PM CST
+ Git operation failed: Command '['git', 'commit', '-m', 'Auto-update from Van Paper report 2025-08-22 01:04 PM CST']' returned non-zero exit status 1.
+ Live app update had issues
+
+==================================================
+ Business hours scan had issues
+ Next scan: In ~2 hours (business hours only)
+ Live app: https://vpsales.streamlit.app/
+[14:06:38.28] Van Paper Automation Complete 
