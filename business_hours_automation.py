@@ -59,9 +59,22 @@ def find_recent_van_paper_email():
                 if not hasattr(message, 'ReceivedTime') or not message.ReceivedTime:
                     continue
                 
-                # Skip if too old
-                if message.ReceivedTime < cutoff_time:
-                    break  # Since sorted newest first, we can break here
+                # Fix timezone comparison issue - convert Outlook time to naive datetime
+                try:
+                    msg_time = message.ReceivedTime
+                    if hasattr(msg_time, 'replace'):
+                        # If it's a timezone-aware datetime, make it naive for comparison
+                        msg_time_naive = msg_time.replace(tzinfo=None)
+                    else:
+                        # If it's already naive, use as is
+                        msg_time_naive = msg_time
+                    
+                    # Skip if too old
+                    if msg_time_naive < cutoff_time:
+                        break  # Since sorted newest first, we can break here
+                except Exception as e:
+                    # If datetime comparison fails, skip this message
+                    continue
                 
                 # Check for Van Paper sender
                 sender = getattr(message, 'SenderEmailAddress', '')
