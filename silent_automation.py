@@ -171,9 +171,14 @@ def main():
     if email_data:
         # Process the email
         success = process_van_paper_email(email_data)
+        # Create sync timestamp regardless of success
+        with open("last_sync.txt", "w") as f:
+            f.write(start_time.strftime('%Y-%m-%d %H:%M:%S'))
         return success
     else:
-        # No emails found - this is normal
+        # No emails found - still create sync timestamp to show we checked
+        with open("last_sync.txt", "w") as f:
+            f.write(start_time.strftime('%Y-%m-%d %H:%M:%S'))
         return True
 
 if __name__ == "__main__":

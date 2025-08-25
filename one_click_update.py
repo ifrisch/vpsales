@@ -62,6 +62,11 @@ def update_from_latest_vanpaper():
         if not latest_vanpaper:
             print("No Van Paper emails found from today")
             print("Your app is probably already up to date!")
+            
+            # Still create sync timestamp to show the app was checked
+            with open("last_sync.txt", "w") as f:
+                f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            
             return True
         
         # Process the attachment
@@ -125,6 +130,10 @@ def update_from_latest_vanpaper():
         print(f"✓ Live app updated: https://vpsales.streamlit.app/")
         print(f"✓ {len(df)} customers loaded")
         print()
+        
+        # Create sync timestamp file
+        with open("last_sync.txt", "w") as f:
+            f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         
         return True
         

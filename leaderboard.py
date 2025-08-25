@@ -355,13 +355,25 @@ st.markdown('</div>', unsafe_allow_html=True)
 import os
 central = ZoneInfo("America/Chicago")
 
-# Get the Excel file's last modification time
+# Try to get the last sync time from automation
+last_sync_file = "last_sync.txt"
 try:
-    excel_mod_time = os.path.getmtime(excel_path)
-    # Convert to Central Time
-    last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
+    if os.path.exists(last_sync_file):
+        with open(last_sync_file, 'r') as f:
+            sync_time_str = f.read().strip()
+        # Parse the sync time and convert to Central Time
+        sync_time = datetime.strptime(sync_time_str, '%Y-%m-%d %H:%M:%S')
+        # Assume the sync time is already in Central Time
+        last_updated = sync_time.replace(tzinfo=central)
+        timestamp_source = "last synced"
+    else:
+        # Fallback to Excel file modification time
+        excel_mod_time = os.path.getmtime(excel_path)
+        last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
+        timestamp_source = "data last updated"
+    
     st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>Data last updated: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+        f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App {timestamp_source}: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
     )
 except FileNotFoundError:
