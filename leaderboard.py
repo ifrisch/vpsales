@@ -356,29 +356,42 @@ st.markdown('</div>', unsafe_allow_html=True)
 import os
 central = ZoneInfo("America/Chicago")
 
-# Function to get timestamp without caching
-@st.cache_data(ttl=1)  # Cache for only 1 second, then refresh
-def get_last_sync_time():
+# Function to get timestamp without caching - using file mtime as cache key
+def get_last_sync_time_uncached():
     last_sync_file = "last_sync.txt"
     if os.path.exists(last_sync_file):
-        # Add current timestamp to force cache invalidation
-        current_mtime = os.path.getmtime(last_sync_file)
+        # Get file modification time to use as cache buster
+        file_mtime = os.path.getmtime(last_sync_file)
+        
         with open(last_sync_file, 'r') as f:
             sync_time_str = f.read().strip()
         # Parse the sync time and convert to Central Time
         sync_time = datetime.strptime(sync_time_str, '%Y-%m-%d %H:%M:%S')
         # Assume the sync time is already in Central Time
         last_updated = sync_time.replace(tzinfo=central)
-        return last_updated, "last synced", current_mtime
+        return last_updated, "last synced", file_mtime
     else:
         # Fallback to Excel file modification time
         excel_mod_time = os.path.getmtime(excel_path)
         last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
         return last_updated, "data last updated", excel_mod_time
 
-# Get timestamp (this will always read fresh from file)
+# Cached version that uses file mtime as key to bust cache when file changes
+@st.cache_data
+def get_last_sync_time_cached(file_mtime_key):
+    return get_last_sync_time_uncached()
+
+# Get timestamp (bypasses cache using file modification time as key)
 try:
-    last_updated, timestamp_source, _ = get_last_sync_time()
+    # Get the current file modification time to use as cache key
+    last_sync_file = "last_sync.txt"
+    if os.path.exists(last_sync_file):
+        file_mtime = os.path.getmtime(last_sync_file)
+    else:
+        file_mtime = os.path.getmtime(excel_path)
+    
+    # Use file mtime as cache key - cache will refresh when file changes
+    last_updated, timestamp_source, _ = get_last_sync_time_cached(file_mtime)
     
     # Create columns for timestamp and refresh button
     col1, col2, col3 = st.columns([2, 3, 1])
