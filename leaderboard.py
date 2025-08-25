@@ -8,17 +8,6 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
-# Auto-refresh every 30 seconds to pick up timestamp changes
-import asyncio
-if 'last_refresh' not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-# Check if 30 seconds have passed and refresh
-current_time = time.time()
-if current_time - st.session_state.last_refresh > 30:
-    st.session_state.last_refresh = current_time
-    st.rerun()
-
 # --- CSS ---
 st.markdown("""
 <style>
@@ -368,25 +357,28 @@ import os
 central = ZoneInfo("America/Chicago")
 
 # Function to get timestamp without caching
+@st.cache_data(ttl=1)  # Cache for only 1 second, then refresh
 def get_last_sync_time():
     last_sync_file = "last_sync.txt"
     if os.path.exists(last_sync_file):
+        # Add current timestamp to force cache invalidation
+        current_mtime = os.path.getmtime(last_sync_file)
         with open(last_sync_file, 'r') as f:
             sync_time_str = f.read().strip()
         # Parse the sync time and convert to Central Time
         sync_time = datetime.strptime(sync_time_str, '%Y-%m-%d %H:%M:%S')
         # Assume the sync time is already in Central Time
         last_updated = sync_time.replace(tzinfo=central)
-        return last_updated, "last synced"
+        return last_updated, "last synced", current_mtime
     else:
         # Fallback to Excel file modification time
         excel_mod_time = os.path.getmtime(excel_path)
         last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
-        return last_updated, "data last updated"
+        return last_updated, "data last updated", excel_mod_time
 
 # Get timestamp (this will always read fresh from file)
 try:
-    last_updated, timestamp_source = get_last_sync_time()
+    last_updated, timestamp_source, _ = get_last_sync_time()
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App {timestamp_source}: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
