@@ -379,10 +379,21 @@ def get_last_sync_time():
 # Get timestamp (this will always read fresh from file)
 try:
     last_updated, timestamp_source, _ = get_last_sync_time()
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App {timestamp_source}: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-        unsafe_allow_html=True
-    )
+    
+    # Create columns for timestamp and refresh button
+    col1, col2, col3 = st.columns([2, 3, 1])
+    
+    with col2:
+        st.markdown(
+            f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App {timestamp_source}: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+            unsafe_allow_html=True
+        )
+    
+    with col3:
+        if st.button("🔄", help="Refresh timestamp", key="refresh_timestamp"):
+            st.cache_data.clear()  # Clear all cached data
+            st.rerun()
+            
 except FileNotFoundError:
     # Fallback if Excel file doesn't exist
     st.markdown(
