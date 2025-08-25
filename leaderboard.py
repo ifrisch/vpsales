@@ -356,19 +356,19 @@ st.markdown('</div>', unsafe_allow_html=True)
 import os
 central = ZoneInfo("America/Chicago")
 
-# Function to get timestamp from git commits (most reliable)
+# SYNC TIMESTAMP - Updated automatically by batch file
+LAST_SYNC_TIMESTAMP = "2025-08-25 14:25:09"  # AUTO-UPDATED
+
+# Function to get timestamp - hardcoded approach for reliability
 def get_current_timestamp():
     central = ZoneInfo("America/Chicago")
     
     try:
-        # Try to get the last git commit timestamp
-        import subprocess
-        result = subprocess.run(['git', 'log', '-1', '--format=%ct'], 
-                              capture_output=True, text=True, cwd='.')
-        if result.returncode == 0:
-            commit_timestamp = int(result.stdout.strip())
-            last_updated = datetime.fromtimestamp(commit_timestamp, tz=central)
-            return last_updated, "last synced"
+        # Use the hardcoded timestamp that gets updated by batch file
+        if LAST_SYNC_TIMESTAMP:
+            sync_time = datetime.strptime(LAST_SYNC_TIMESTAMP, '%Y-%m-%d %H:%M:%S')
+            last_updated = sync_time.replace(tzinfo=central)
+            return last_updated, "last synced (embedded)"
     except:
         pass
     

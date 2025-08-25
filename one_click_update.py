@@ -64,8 +64,34 @@ def update_from_latest_vanpaper():
             print("Your app is probably already up to date!")
             
             # Still create sync timestamp to show the app was checked
+            current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             with open("last_sync.txt", "w") as f:
-                f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                f.write(current_timestamp)
+            
+            # Update timestamp in leaderboard.py even when no new emails
+            try:
+                with open("leaderboard.py", "r", encoding="utf-8") as f:
+                    content = f.read()
+                
+                import re
+                pattern = r'LAST_SYNC_TIMESTAMP = "[^"]*"'
+                replacement = f'LAST_SYNC_TIMESTAMP = "{current_timestamp}"'
+                
+                if re.search(pattern, content):
+                    content = re.sub(pattern, replacement, content)
+                    
+                    with open("leaderboard.py", "w", encoding="utf-8") as f:
+                        f.write(content)
+                    print(f"✓ Updated embedded timestamp: {current_timestamp}")
+                    
+                    # Commit the timestamp update
+                    subprocess.run(["git", "add", "leaderboard.py"], capture_output=True)
+                    subprocess.run(["git", "commit", "-m", f"Update sync timestamp - no new emails found"], capture_output=True)
+                    subprocess.run(["git", "push"], capture_output=True)
+                    print("✓ Pushed timestamp update to live app")
+                    
+            except Exception as e:
+                print(f"⚠ Timestamp update failed: {e}")
             
             return True
         
@@ -132,8 +158,31 @@ def update_from_latest_vanpaper():
         print()
         
         # Create sync timestamp file
+        current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         with open("last_sync.txt", "w") as f:
-            f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            f.write(current_timestamp)
+        
+        # Update timestamp directly in leaderboard.py for reliability
+        try:
+            with open("leaderboard.py", "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # Find and replace the timestamp line
+            import re
+            pattern = r'LAST_SYNC_TIMESTAMP = "[^"]*"'
+            replacement = f'LAST_SYNC_TIMESTAMP = "{current_timestamp}"'
+            
+            if re.search(pattern, content):
+                content = re.sub(pattern, replacement, content)
+                
+                with open("leaderboard.py", "w", encoding="utf-8") as f:
+                    f.write(content)
+                print(f"✓ Updated embedded timestamp: {current_timestamp}")
+            else:
+                print("⚠ Could not find timestamp in leaderboard.py")
+                
+        except Exception as e:
+            print(f"⚠ Timestamp update failed: {e}")
         
         return True
         
