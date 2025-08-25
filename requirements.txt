@@ -5,3 +5,4 @@ pillow
 fuzzywuzzy
 python-Levenshtein
 streamlit-aggrid
+# Force redeploy - August 25, 2025
