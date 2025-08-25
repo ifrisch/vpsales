@@ -6,6 +6,18 @@ from datetime import datetime
 from zoneinfo import ZoneInfo  # For Central Time
 from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
+import time
+
+# Auto-refresh every 30 seconds to pick up timestamp changes
+import asyncio
+if 'last_refresh' not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+# Check if 30 seconds have passed and refresh
+current_time = time.time()
+if current_time - st.session_state.last_refresh > 30:
+    st.session_state.last_refresh = current_time
+    st.rerun()
 
 # --- CSS ---
 st.markdown("""
@@ -355,9 +367,9 @@ st.markdown('</div>', unsafe_allow_html=True)
 import os
 central = ZoneInfo("America/Chicago")
 
-# Try to get the last sync time from automation
-last_sync_file = "last_sync.txt"
-try:
+# Function to get timestamp without caching
+def get_last_sync_time():
+    last_sync_file = "last_sync.txt"
     if os.path.exists(last_sync_file):
         with open(last_sync_file, 'r') as f:
             sync_time_str = f.read().strip()
@@ -365,13 +377,16 @@ try:
         sync_time = datetime.strptime(sync_time_str, '%Y-%m-%d %H:%M:%S')
         # Assume the sync time is already in Central Time
         last_updated = sync_time.replace(tzinfo=central)
-        timestamp_source = "last synced"
+        return last_updated, "last synced"
     else:
         # Fallback to Excel file modification time
         excel_mod_time = os.path.getmtime(excel_path)
         last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
-        timestamp_source = "data last updated"
-    
+        return last_updated, "data last updated"
+
+# Get timestamp (this will always read fresh from file)
+try:
+    last_updated, timestamp_source = get_last_sync_time()
     st.markdown(
         f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App {timestamp_source}: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
         unsafe_allow_html=True
