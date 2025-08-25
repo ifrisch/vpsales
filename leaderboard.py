@@ -357,7 +357,7 @@ import os
 central = ZoneInfo("America/Chicago")
 
 # SYNC TIMESTAMP - Updated automatically by batch file
-LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED
+LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED - REFRESH
 
 # Function to get timestamp - hardcoded approach for reliability
 def get_current_timestamp():
