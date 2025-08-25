@@ -8,6 +8,8 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
+st.write("DEBUG: App started successfully")
+
 # --- CSS ---
 st.markdown("""
 <style>
@@ -352,103 +354,14 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.write("DEBUG: Reached timestamp section start")
-
-# --- LAST UPDATED TIMESTAMP (Central Time) ---
-import os
+# --- SIMPLE TIMESTAMP ---
 central = ZoneInfo("America/Chicago")
+LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED
 
-# SYNC TIMESTAMP - Updated automatically by batch file
-LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED - REFRESH
+sync_time = datetime.strptime(LAST_SYNC_TIMESTAMP, '%Y-%m-%d %H:%M:%S')
+last_updated = sync_time.replace(tzinfo=central)
 
-# Function to get timestamp - hardcoded approach for reliability
-def get_current_timestamp():
-    st.write("DEBUG: Inside get_current_timestamp function")
-    central = ZoneInfo("America/Chicago")
-    
-    try:
-        # Use the hardcoded timestamp that gets updated by batch file
-        if LAST_SYNC_TIMESTAMP:
-            st.write(f"DEBUG: Using embedded timestamp: {LAST_SYNC_TIMESTAMP}")
-            sync_time = datetime.strptime(LAST_SYNC_TIMESTAMP, '%Y-%m-%d %H:%M:%S')
-            last_updated = sync_time.replace(tzinfo=central)
-            return last_updated, "last synced (embedded)"
-    except Exception as e:
-        st.write(f"DEBUG: Embedded timestamp failed: {e}")
-        pass
-    
-    # Fallback 1: Try sync file
-    try:
-        last_sync_file = "last_sync.txt"
-        if os.path.exists(last_sync_file):
-            with open(last_sync_file, 'r', encoding='utf-8') as f:
-                sync_time_str = f.read().strip()
-            
-            if sync_time_str:
-                sync_time = datetime.strptime(sync_time_str, '%Y-%m-%d %H:%M:%S')
-                last_updated = sync_time.replace(tzinfo=central)
-                return last_updated, "last synced (file)"
-    except:
-        pass
-        
-    # Fallback 2: Excel file modification time
-    try:
-        excel_mod_time = os.path.getmtime(excel_path)
-        last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
-        return last_updated, "data last updated"
-    except:
-        pass
-        
-    # Final fallback: current time
-    current_time = datetime.now(central)
-    return current_time, "last checked"
-
-# Get timestamp (completely bypass all caching)
-st.markdown("DEBUG: Starting timestamp section...")
-
-try:
-    # Call the uncached function directly
-    last_updated, timestamp_source = get_current_timestamp()
-    st.markdown(f"DEBUG: Got timestamp - {timestamp_source}")
-    
-    # Also show current page load time for debugging
-    current_time = datetime.now(ZoneInfo("America/Chicago"))
-    
-    # Debug: Check if sync file exists and what it contains
-    embedded_info = f"Embedded: {LAST_SYNC_TIMESTAMP}"
-    st.markdown(f"DEBUG: {embedded_info}")
-    
-    try:
-        if os.path.exists("last_sync.txt"):
-            with open("last_sync.txt", 'r') as f:
-                content = f.read().strip()
-            sync_file_info = f" | File: {content}"
-        else:
-            sync_file_info = " | File: NOT FOUND"
-    except Exception as e:
-        sync_file_info = f" | File: ERROR - {str(e)}"
-    
-    # Create columns for timestamp and refresh button
-    col1, col2, col3 = st.columns([2, 3, 1])
-    
-    with col2:
-        st.markdown(
-            f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App {timestamp_source}: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f"<div style='text-align: center; margin-top: 5px; color: lightgray; font-family: Futura, sans-serif; font-size: 12px;'>Page loaded: {current_time.strftime('%I:%M:%S %p')} | {embedded_info}{sync_file_info}</div>",
-            unsafe_allow_html=True
-        )
-    
-    with col3:
-        if st.button("🔄", help="Refresh page", key="refresh_page"):
-            st.rerun()
-            
-except Exception as e:
-    # Fallback display with detailed error
-    st.markdown(f"DEBUG: Exception caught - {str(e)}")
-    st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: red; font-family: Futura, sans-serif;'>Timestamp error: {str(e)}</div>",
-        unsafe_allow_html=True
-    )
+st.markdown(
+    f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>App last synced: {last_updated.strftime('%B %d, %Y at %I:%M %p')}</div>",
+    unsafe_allow_html=True
+)
