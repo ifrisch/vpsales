@@ -8,6 +8,9 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
+# FORCE DEPLOYMENT - CHANGE THIS LINE TO TRIGGER REBUILD
+st.write("🔄 DEPLOYMENT TEST - If you see this, the app is updating properly!")
+
 st.write("DEBUG: App started successfully")
 
 # --- CSS ---
