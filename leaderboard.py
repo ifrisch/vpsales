@@ -352,6 +352,8 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
+st.write("DEBUG: Reached timestamp section start")
+
 # --- LAST UPDATED TIMESTAMP (Central Time) ---
 import os
 central = ZoneInfo("America/Chicago")
@@ -361,15 +363,18 @@ LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED - REFRESH
 
 # Function to get timestamp - hardcoded approach for reliability
 def get_current_timestamp():
+    st.write("DEBUG: Inside get_current_timestamp function")
     central = ZoneInfo("America/Chicago")
     
     try:
         # Use the hardcoded timestamp that gets updated by batch file
         if LAST_SYNC_TIMESTAMP:
+            st.write(f"DEBUG: Using embedded timestamp: {LAST_SYNC_TIMESTAMP}")
             sync_time = datetime.strptime(LAST_SYNC_TIMESTAMP, '%Y-%m-%d %H:%M:%S')
             last_updated = sync_time.replace(tzinfo=central)
             return last_updated, "last synced (embedded)"
-    except:
+    except Exception as e:
+        st.write(f"DEBUG: Embedded timestamp failed: {e}")
         pass
     
     # Fallback 1: Try sync file
