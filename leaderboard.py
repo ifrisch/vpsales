@@ -399,16 +399,20 @@ def get_current_timestamp():
     return current_time, "last checked"
 
 # Get timestamp (completely bypass all caching)
+st.markdown("DEBUG: Starting timestamp section...")
+
 try:
     # Call the uncached function directly
     last_updated, timestamp_source = get_current_timestamp()
+    st.markdown(f"DEBUG: Got timestamp - {timestamp_source}")
     
     # Also show current page load time for debugging
     current_time = datetime.now(ZoneInfo("America/Chicago"))
     
     # Debug: Check if sync file exists and what it contains
-    sync_file_info = ""
     embedded_info = f"Embedded: {LAST_SYNC_TIMESTAMP}"
+    st.markdown(f"DEBUG: {embedded_info}")
+    
     try:
         if os.path.exists("last_sync.txt"):
             with open("last_sync.txt", 'r') as f:
@@ -416,8 +420,8 @@ try:
             sync_file_info = f" | File: {content}"
         else:
             sync_file_info = " | File: NOT FOUND"
-    except:
-        sync_file_info = " | File: ERROR"
+    except Exception as e:
+        sync_file_info = f" | File: ERROR - {str(e)}"
     
     # Create columns for timestamp and refresh button
     col1, col2, col3 = st.columns([2, 3, 1])
@@ -437,8 +441,9 @@ try:
             st.rerun()
             
 except Exception as e:
-    # Fallback display
+    # Fallback display with detailed error
+    st.markdown(f"DEBUG: Exception caught - {str(e)}")
     st.markdown(
-        f"<div style='text-align: center; margin-top: 30px; color: gray; font-family: Futura, sans-serif;'>Timestamp unavailable: {str(e)}</div>",
+        f"<div style='text-align: center; margin-top: 30px; color: red; font-family: Futura, sans-serif;'>Timestamp error: {str(e)}</div>",
         unsafe_allow_html=True
     )
