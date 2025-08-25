@@ -356,33 +356,47 @@ st.markdown('</div>', unsafe_allow_html=True)
 import os
 central = ZoneInfo("America/Chicago")
 
-# Function to get timestamp - completely uncached approach
+# Function to get timestamp from git commits (most reliable)
 def get_current_timestamp():
-    last_sync_file = "last_sync.txt"
     central = ZoneInfo("America/Chicago")
     
-    # Always read fresh from file without any caching
     try:
+        # Try to get the last git commit timestamp
+        import subprocess
+        result = subprocess.run(['git', 'log', '-1', '--format=%ct'], 
+                              capture_output=True, text=True, cwd='.')
+        if result.returncode == 0:
+            commit_timestamp = int(result.stdout.strip())
+            last_updated = datetime.fromtimestamp(commit_timestamp, tz=central)
+            return last_updated, "last synced"
+    except:
+        pass
+    
+    # Fallback 1: Try sync file
+    try:
+        last_sync_file = "last_sync.txt"
         if os.path.exists(last_sync_file):
-            # Force fresh read by opening and closing file
             with open(last_sync_file, 'r', encoding='utf-8') as f:
                 sync_time_str = f.read().strip()
             
             if sync_time_str:
-                # Parse the sync time and convert to Central Time
                 sync_time = datetime.strptime(sync_time_str, '%Y-%m-%d %H:%M:%S')
                 last_updated = sync_time.replace(tzinfo=central)
-                return last_updated, "last synced"
+                return last_updated, "last synced (file)"
+    except:
+        pass
         
-        # Fallback to Excel file modification time
+    # Fallback 2: Excel file modification time
+    try:
         excel_mod_time = os.path.getmtime(excel_path)
         last_updated = datetime.fromtimestamp(excel_mod_time, tz=central)
         return last_updated, "data last updated"
+    except:
+        pass
         
-    except Exception as e:
-        # If anything goes wrong, use current time
-        current_time = datetime.now(central)
-        return current_time, "last checked"
+    # Final fallback: current time
+    current_time = datetime.now(central)
+    return current_time, "last checked"
 
 # Get timestamp (completely bypass all caching)
 try:
@@ -391,6 +405,18 @@ try:
     
     # Also show current page load time for debugging
     current_time = datetime.now(ZoneInfo("America/Chicago"))
+    
+    # Debug: Check if sync file exists and what it contains
+    sync_file_info = ""
+    try:
+        if os.path.exists("last_sync.txt"):
+            with open("last_sync.txt", 'r') as f:
+                content = f.read().strip()
+            sync_file_info = f" | Sync file: {content}"
+        else:
+            sync_file_info = " | Sync file: NOT FOUND"
+    except:
+        sync_file_info = " | Sync file: ERROR"
     
     # Create columns for timestamp and refresh button
     col1, col2, col3 = st.columns([2, 3, 1])
@@ -401,7 +427,7 @@ try:
             unsafe_allow_html=True
         )
         st.markdown(
-            f"<div style='text-align: center; margin-top: 5px; color: lightgray; font-family: Futura, sans-serif; font-size: 12px;'>Page loaded: {current_time.strftime('%I:%M:%S %p')}</div>",
+            f"<div style='text-align: center; margin-top: 5px; color: lightgray; font-family: Futura, sans-serif; font-size: 12px;'>Page loaded: {current_time.strftime('%I:%M:%S %p')}{sync_file_info}</div>",
             unsafe_allow_html=True
         )
     
