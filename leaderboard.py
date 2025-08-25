@@ -8,11 +8,6 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
-# FORCE DEPLOYMENT - CHANGE THIS LINE TO TRIGGER REBUILD
-st.write("🔄 DEPLOYMENT TEST - If you see this, the app is updating properly!")
-
-st.write("DEBUG: App started successfully")
-
 # --- CSS ---
 st.markdown("""
 <style>
@@ -357,10 +352,11 @@ except Exception as e:
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- SIMPLE TIMESTAMP ---
+# --- TIMESTAMP ---
 central = ZoneInfo("America/Chicago")
-LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED
+LAST_SYNC_TIMESTAMP = "2025-08-25 14:29:45"  # AUTO-UPDATED BY BATCH FILE
 
+# Display sync timestamp
 sync_time = datetime.strptime(LAST_SYNC_TIMESTAMP, '%Y-%m-%d %H:%M:%S')
 last_updated = sync_time.replace(tzinfo=central)
 
