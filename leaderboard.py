@@ -408,15 +408,16 @@ try:
     
     # Debug: Check if sync file exists and what it contains
     sync_file_info = ""
+    embedded_info = f"Embedded: {LAST_SYNC_TIMESTAMP}"
     try:
         if os.path.exists("last_sync.txt"):
             with open("last_sync.txt", 'r') as f:
                 content = f.read().strip()
-            sync_file_info = f" | Sync file: {content}"
+            sync_file_info = f" | File: {content}"
         else:
-            sync_file_info = " | Sync file: NOT FOUND"
+            sync_file_info = " | File: NOT FOUND"
     except:
-        sync_file_info = " | Sync file: ERROR"
+        sync_file_info = " | File: ERROR"
     
     # Create columns for timestamp and refresh button
     col1, col2, col3 = st.columns([2, 3, 1])
@@ -427,7 +428,7 @@ try:
             unsafe_allow_html=True
         )
         st.markdown(
-            f"<div style='text-align: center; margin-top: 5px; color: lightgray; font-family: Futura, sans-serif; font-size: 12px;'>Page loaded: {current_time.strftime('%I:%M:%S %p')}{sync_file_info}</div>",
+            f"<div style='text-align: center; margin-top: 5px; color: lightgray; font-family: Futura, sans-serif; font-size: 12px;'>Page loaded: {current_time.strftime('%I:%M:%S %p')} | {embedded_info}{sync_file_info}</div>",
             unsafe_allow_html=True
         )
     
