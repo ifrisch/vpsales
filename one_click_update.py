@@ -132,32 +132,7 @@ def update_from_latest_vanpaper():
         except Exception as e:
             print(f"Data verification failed: {e}")
         
-        # Git update
-        print("Updating live Streamlit app...")
-        git_commands = [
-            ["git", "add", "."],
-            ["git", "commit", "-m", f"One-click update from Van Paper {latest_vanpaper.ReceivedTime.strftime('%I:%M %p')} on {latest_vanpaper.ReceivedTime.strftime('%Y-%m-%d')}"],
-            ["git", "push"]
-        ]
-        
-        for cmd in git_commands:
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
-                if result.returncode == 0:
-                    print(f"✓ {' '.join(cmd[:2])}")
-                else:
-                    print(f"✗ {' '.join(cmd[:2])}: {result.stderr}")
-            except Exception as e:
-                print(f"Git error: {e}")
-        
-        print()
-        print("=== UPDATE COMPLETE! ===")
-        print(f"✓ Processed Van Paper email from {latest_vanpaper.ReceivedTime.strftime('%I:%M %p')}")
-        print(f"✓ Live app updated: https://vpsales.streamlit.app/")
-        print(f"✓ {len(df)} customers loaded")
-        print()
-        
-        # Create sync timestamp file
+        # Create sync timestamp file and update embedded timestamp BEFORE git
         current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         with open("last_sync.txt", "w") as f:
             f.write(current_timestamp)
@@ -183,6 +158,31 @@ def update_from_latest_vanpaper():
                 
         except Exception as e:
             print(f"⚠ Timestamp update failed: {e}")
+
+        # Git update
+        print("Updating live Streamlit app...")
+        git_commands = [
+            ["git", "add", "."],
+            ["git", "commit", "-m", f"One-click update from Van Paper {latest_vanpaper.ReceivedTime.strftime('%I:%M %p')} on {latest_vanpaper.ReceivedTime.strftime('%Y-%m-%d')}"],
+            ["git", "push"]
+        ]
+        
+        for cmd in git_commands:
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
+                if result.returncode == 0:
+                    print(f"✓ {' '.join(cmd[:2])}")
+                else:
+                    print(f"✗ {' '.join(cmd[:2])}: {result.stderr}")
+            except Exception as e:
+                print(f"Git error: {e}")
+        
+        print()
+        print("=== UPDATE COMPLETE! ===")
+        print(f"✓ Processed Van Paper email from {latest_vanpaper.ReceivedTime.strftime('%I:%M %p')}")
+        print(f"✓ Live app updated: https://vpsales.streamlit.app/")
+        print(f"✓ {len(df)} customers loaded")
+        print()
         
         return True
         
