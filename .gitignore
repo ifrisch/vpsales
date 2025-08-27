@@ -1,0 +1,48 @@
+# Backup files
+leaderboard_backup_*.xlsx
+leaderboard_from_vanpaper_*.xlsx
+vanpaper_export_*.xlsx
+
+# Log files
+*.log
+
+# Temporary files
+temp_*
+test_*
+
+# Old backup files
+leaderboard_old_backup.xlsx
+test_vanpaper_current.xlsx
+
+# Windows shortcuts
+*.lnk
+
+# Development files
+automation_config.txt
+automation_requirements.txt
+check_*.py
+debug_*.py
+diagnose_*.py
+explore_*.py
+extended_*.py
+find_*.py
+force_*.py
+manual_*.py
+process_*.py
+quick_*.py
+scan_*.py
+search_*.py
+setup_*.py
+test_*.py
+
+# Old automation scripts
+automation_wrapper.bat
+business_hours_*.py
+continuous_*.py
+continuous_wrapper.bat
+final_automation.bat
+run_*.bat
+scheduled_automation.py
+silent_*.py
+setup_*.bat
+setup_*.ps1
