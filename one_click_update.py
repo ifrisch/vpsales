@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 One-Click Van Paper Update
 Simple, reliable, fast - just run this when you want to update the app

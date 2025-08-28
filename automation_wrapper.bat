@@ -11,6 +11,10 @@ cd /d "C:\Users\Isaac\OneDrive - Van Paper Company\Python_Projects\Sales_Leaderb
 REM Set full Python path
 set PYTHON_PATH=C:\Users\Isaac\AppData\Local\Programs\Python\Python313\python.exe
 
+REM Set environment variables for proper encoding
+set PYTHONIOENCODING=utf-8
+set PYTHONLEGACYWINDOWSSTDIO=1
+
 REM Run the automation silently - no window will appear
 "%PYTHON_PATH%" "C:\Users\Isaac\OneDrive - Van Paper Company\Python_Projects\Sales_Leaderboard\one_click_update.py" >> "C:\Users\Isaac\OneDrive - Van Paper Company\Python_Projects\Sales_Leaderboard\automation.log" 2>&1
 
