@@ -4,6 +4,13 @@ One-Click Van Paper Update
 Simple, reliable, fast - just run this when you want to update the app
 """
 
+import sys
+import io
+
+# Set stdout to handle ASCII only for Windows compatibility
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='ascii', errors='replace')
+
 import win32com.client
 import pandas as pd
 import os
