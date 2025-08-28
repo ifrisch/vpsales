@@ -195,5 +195,8 @@ def update_from_latest_vanpaper():
 
 if __name__ == "__main__":
     success = update_from_latest_vanpaper()
-    print("Press Enter to close...")
-    input()
+    # Silent mode - no user input required
+    if success:
+        print("Update completed successfully!")
+    else:
+        print("Update failed - check logs")
