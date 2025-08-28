@@ -82,16 +82,16 @@ def update_from_latest_vanpaper():
                     
                     with open("leaderboard.py", "w", encoding="utf-8") as f:
                         f.write(content)
-                    print(f"✓ Updated embedded timestamp: {current_timestamp}")
+                    print(f"[OK] Updated embedded timestamp: {current_timestamp}")
                     
                     # Commit the timestamp update
                     subprocess.run(["git", "add", "leaderboard.py"], capture_output=True)
                     subprocess.run(["git", "commit", "-m", f"Update sync timestamp - no new emails found"], capture_output=True)
                     subprocess.run(["git", "push"], capture_output=True)
-                    print("✓ Pushed timestamp update to live app")
+                    print("[OK] Pushed timestamp update to live app")
                     
             except Exception as e:
-                print(f"⚠ Timestamp update failed: {e}")
+                print(f"[WARNING] Timestamp update failed: {e}")
             
             return True
         
@@ -152,12 +152,12 @@ def update_from_latest_vanpaper():
                 
                 with open("leaderboard.py", "w", encoding="utf-8") as f:
                     f.write(content)
-                print(f"✓ Updated embedded timestamp: {current_timestamp}")
+                print(f"[OK] Updated embedded timestamp: {current_timestamp}")
             else:
-                print("⚠ Could not find timestamp in leaderboard.py")
+                print("[WARNING] Could not find timestamp in leaderboard.py")
                 
         except Exception as e:
-            print(f"⚠ Timestamp update failed: {e}")
+            print(f"[WARNING] Timestamp update failed: {e}")
 
         # Git update
         print("Updating live Streamlit app...")
@@ -171,17 +171,17 @@ def update_from_latest_vanpaper():
             try:
                 result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
                 if result.returncode == 0:
-                    print(f"✓ {' '.join(cmd[:2])}")
+                    print(f"[OK] {' '.join(cmd[:2])}")
                 else:
-                    print(f"✗ {' '.join(cmd[:2])}: {result.stderr}")
+                    print(f"[ERROR] {' '.join(cmd[:2])}: {result.stderr}")
             except Exception as e:
                 print(f"Git error: {e}")
         
         print()
         print("=== UPDATE COMPLETE! ===")
-        print(f"✓ Processed Van Paper email from {latest_vanpaper.ReceivedTime.strftime('%I:%M %p')}")
-        print(f"✓ Live app updated: https://vpsales.streamlit.app/")
-        print(f"✓ {len(df)} customers loaded")
+        print(f"[OK] Processed Van Paper email from {latest_vanpaper.ReceivedTime.strftime('%I:%M %p')}")
+        print(f"[OK] Live app updated: https://vpsales.streamlit.app/")
+        print(f"[OK] {len(df)} customers loaded")
         print()
         
         return True
