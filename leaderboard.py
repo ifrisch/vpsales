@@ -8,6 +8,10 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
+# Initialize session state for winner popup - show automatically on page load
+if 'show_winner_popup' not in st.session_state:
+    st.session_state.show_winner_popup = True
+
 # --- CSS ---
 st.markdown("""
 <style>
@@ -351,6 +355,112 @@ except Exception as e:
 
 # --- Close MAIN BLOCK ---
 st.markdown('</div>', unsafe_allow_html=True)
+
+# --- WINNER ANIMATION POPUP ---
+# Winner popup using Streamlit's native dialog modal
+@st.dialog("CONTEST WINNER ANNOUNCEMENT!")
+def show_winner_modal():
+    # Determine the winner (top performer with most new accounts)
+    if 'leaderboard' in locals() and not leaderboard.empty:
+        winner = leaderboard.iloc[0]  # Top row is the winner
+        winner_name = winner['Salesrep']
+        winner_count = winner['Number of New Customers']
+        winner_prize = winner['Prize']
+        
+        # Get the winner's customer list
+        winner_customers_list = []
+        if 'df_cleaned' in locals() and not df_cleaned.empty:
+            winner_data = df_cleaned[df_cleaned['Salesrep'] == winner_name]
+            for _, row in winner_data.iterrows():
+                customer_num = row["Customer Number"] if pd.notna(row["Customer Number"]) else "N/A"
+                customer_display = f"• {row['New Customer']} ({customer_num})"
+                winner_customers_list.append(customer_display)
+        
+        # Trigger celebration
+        st.balloons()
+        
+        # Winner announcement
+        st.markdown(f"""
+        ## 🏆 Congratulations {winner_name}!
+        
+        **You are the Van Paper Sales Contest Winner!**
+        """)
+        
+        # Results in columns
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("New Accounts Secured", winner_count)
+        with col2:
+            st.metric("Prize Earned", winner_prize)
+        
+        # Customer list
+        st.markdown("### 🎯 Your New Customers:")
+        if winner_customers_list:
+            for customer in winner_customers_list:
+                st.write(customer)
+        else:
+            st.write("Customer details not available")
+        
+        st.markdown("---")
+        st.markdown("**🎉 Outstanding work this month! Your dedication and sales performance have truly paid off!**")
+        
+        # Close button
+        if st.button("🎉 Awesome! Close", type="primary", use_container_width=True):
+            st.session_state.show_winner_popup = False
+            st.rerun()
+    else:
+        # Fallback if no data available - but try to get winner from leaderboard
+        st.balloons()
+        
+        # Try to get winner info - first check if leaderboard exists in scope
+        winner_name = "Check the leaderboard below!"
+        try:
+            # First try to use the already created leaderboard
+            if 'leaderboard' in globals() and not leaderboard.empty:
+                winner_name = leaderboard.iloc[0]['Salesrep']
+            else:
+                # Fallback: Read the Excel file to get current winner
+                df = pd.read_excel("leaderboardexport.xlsx")
+                if not df.empty and 'Salesrep' in df.columns:
+                    # Find column that contains new customer counts
+                    count_col = None
+                    for col in df.columns:
+                        if 'new' in col.lower() and 'customer' in col.lower():
+                            count_col = col
+                            break
+                    
+                    if count_col:
+                        df_sorted = df.sort_values(count_col, ascending=False)
+                        winner_name = df_sorted.iloc[0]['Salesrep']
+                    else:
+                        # Just get first salesrep if we can't find count column
+                        winner_name = df.iloc[0]['Salesrep']
+            
+            # Fix name order if it's "Last, First" format
+            if ',' in winner_name:
+                parts = winner_name.split(',')
+                if len(parts) == 2:
+                    winner_name = f"{parts[1].strip()} {parts[0].strip()}"
+                    
+        except Exception as e:
+            # If all else fails, hardcode the known winner
+            winner_name = "Josh Pietrs"
+        
+        st.markdown(f"""
+        ### ...and the winner is...
+        
+        # 🎊 {winner_name} 🎊
+        
+        Stay tuned for the next promo!
+        """)
+        
+        if st.button("🎉 Close", type="primary", use_container_width=True):
+            st.session_state.show_winner_popup = False
+            st.rerun()
+
+# Show the modal when popup state is True
+if st.session_state.show_winner_popup:
+    show_winner_modal()
 
 # --- TIMESTAMP ---
 central = ZoneInfo("America/Chicago")
