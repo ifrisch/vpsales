@@ -89,7 +89,7 @@ st.markdown("""
         <strong>Note:</strong> New ownership, new management, and name changes do not count as new accounts. Accounts must have at least 1 order to qualify. Additional ship-tos or separate customers associated with the same primary business do not count as additional customers.
     </div>
     <div style='margin-top: 15px; text-align: center; font-weight: bold; color: #666;'>
-        📅 Incentive Period: June 27th - September 19th
+        📅 Incentive Period: September 19th - December 31st
     </div>
 </div>
 """, unsafe_allow_html=True)
