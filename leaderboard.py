@@ -8,9 +8,9 @@ from fuzzywuzzy import fuzz
 from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
-# Initialize session state for winner popup - show automatically on page load
+# Initialize session state for winner popup - hide for now
 if 'show_winner_popup' not in st.session_state:
-    st.session_state.show_winner_popup = True
+    st.session_state.show_winner_popup = False
 
 # --- CSS ---
 st.markdown("""
