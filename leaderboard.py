@@ -464,7 +464,7 @@ if st.session_state.show_winner_popup:
 
 # --- TIMESTAMP ---
 central = ZoneInfo("America/Chicago")
-LAST_SYNC_TIMESTAMP = "2025-10-09 08:07:01"  # AUTO-UPDATED BY BATCH FILE
+LAST_SYNC_TIMESTAMP = "2025-10-10 07:40:34"  # AUTO-UPDATED BY BATCH FILE
 
 # Display sync timestamp
 sync_time = datetime.strptime(LAST_SYNC_TIMESTAMP, '%Y-%m-%d %H:%M:%S')
