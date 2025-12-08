@@ -123,6 +123,9 @@ try:
     
     df = df[df["Salesrep"].str.strip().str.lower() != "house account"]
     
+    # Exclude salesrep with initials KCV from leaderboard eligibility
+    df = df[~df["Salesrep"].str.upper().str.contains("KCV", na=False)]
+    
     df["Last Invoice Date"] = pd.to_datetime(df["Last Invoice Date"], errors="coerce")
     
     # Convert Rule Violation to string and handle NaN values  
