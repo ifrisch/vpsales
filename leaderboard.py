@@ -193,9 +193,9 @@ try:
     df_pending = pd.DataFrame(pending_rows)
     df_violations = pd.DataFrame(violation_rows)
     
-    # Exclude salesrep with initials KCV from leaderboard eligibility
+    # Exclude salesrep "Van, Kyle C" (KCV) from leaderboard eligibility
     if len(df_cleaned) > 0:
-        df_cleaned = df_cleaned[~df_cleaned["Salesrep"].str.upper().str.contains("KCV", na=False)]
+        df_cleaned = df_cleaned[~df_cleaned["Salesrep"].str.contains("Van, Kyle", case=False, na=False)]
 
     if len(df_cleaned) == 0:
         st.warning("No customers with invoices found for leaderboard")
