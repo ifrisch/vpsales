@@ -159,40 +159,40 @@ try:
             # Mark all matched cleaned customers as used for this salesrep
             used_customers_for_rep.update(matches["Cleaned Customer"].tolist())
 
-        # Check if any matches have rule violations
-        # For now, treat "Prospect" values as valid customers, not violations
-        # Real violations would be specific text like "Duplicate", "Invalid", etc.
-        matches_with_violations = matches[
-            (matches["Rule Violation"] != "") & 
-            (matches["Rule Violation"] != "nan") & 
-            (matches["Rule Violation"] != "Prospect") &
-            (matches["Rule Violation"].str.contains("violation|duplicate|invalid|exclude", case=False, na=False))
-        ]
-        if not matches_with_violations.empty:
-            # If there's a rule violation, add to violation list
-            best_violation = matches_with_violations.iloc[0]
-            violation_rows.append(best_violation)
-        else:
-            # If no explicit violations, process normally
-            # If any matched rows have an invoice date, pick the latest one for keeping
-            matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
-            if not matches_with_invoice.empty:
-                best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
-                kept_rows.append(best_match)
-                
-                # Add any remaining matches as duplicates/violations
-                remaining_matches = matches[matches.index != best_match.name]
-                for _, duplicate_row in remaining_matches.iterrows():
-                    violation_rows.append(duplicate_row)
+            # Check if any matches have rule violations
+            # For now, treat "Prospect" values as valid customers, not violations
+            # Real violations would be specific text like "Duplicate", "Invalid", etc.
+            matches_with_violations = matches[
+                (matches["Rule Violation"] != "") & 
+                (matches["Rule Violation"] != "nan") & 
+                (matches["Rule Violation"] != "Prospect") &
+                (matches["Rule Violation"].str.contains("violation|duplicate|invalid|exclude", case=False, na=False))
+            ]
+            if not matches_with_violations.empty:
+                # If there's a rule violation, add to violation list
+                best_violation = matches_with_violations.iloc[0]
+                violation_rows.append(best_violation)
             else:
-                # If none have invoice dates, just take the first match row
-                best_match = matches.iloc[0]
-                pending_rows.append(best_match)
-                
-                # Add any remaining matches as duplicates/violations
-                remaining_matches = matches[matches.index != best_match.name]
-                for _, duplicate_row in remaining_matches.iterrows():
-                    violation_rows.append(duplicate_row)
+                # If no explicit violations, process normally
+                # If any matched rows have an invoice date, pick the latest one for keeping
+                matches_with_invoice = matches[~matches["Last Invoice Date"].isna()]
+                if not matches_with_invoice.empty:
+                    best_match = matches_with_invoice.sort_values(by="Last Invoice Date", ascending=False).iloc[0]
+                    kept_rows.append(best_match)
+                    
+                    # Add any remaining matches as duplicates/violations
+                    remaining_matches = matches[matches.index != best_match.name]
+                    for _, duplicate_row in remaining_matches.iterrows():
+                        violation_rows.append(duplicate_row)
+                else:
+                    # If none have invoice dates, just take the first match row
+                    best_match = matches.iloc[0]
+                    pending_rows.append(best_match)
+                    
+                    # Add any remaining matches as duplicates/violations
+                    remaining_matches = matches[matches.index != best_match.name]
+                    for _, duplicate_row in remaining_matches.iterrows():
+                        violation_rows.append(duplicate_row)
 
     df_cleaned = pd.DataFrame(kept_rows)
     df_pending = pd.DataFrame(pending_rows)
