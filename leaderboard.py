@@ -142,17 +142,22 @@ try:
     pending_rows = []
     violation_rows = []
 
-    # We'll iterate through all rows, grouping customers by fuzzy matches (token_set_ratio) >= 85
-    for i, row in df.iterrows():
-        cust_name = row["Cleaned Customer"]
-        if cust_name in used_customers:
-            continue
+    # We'll iterate through all rows, grouping customers by fuzzy matches (token_set_ratio) >= 90
+    # ONLY within the same salesrep - duplicates are per-salesrep, not across all salesreps
+    for salesrep in df["Salesrep"].unique():
+        salesrep_df = df[df["Salesrep"] == salesrep].copy()
+        used_customers_for_rep = set()
+        
+        for i, row in salesrep_df.iterrows():
+            cust_name = row["Cleaned Customer"]
+            if cust_name in used_customers_for_rep:
+                continue
 
-        # Find all rows with fuzzy token_set_ratio >= 85
-        matches = df[df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 85)].copy()
+            # Find all rows for THIS salesrep with fuzzy token_set_ratio >= 90
+            matches = salesrep_df[salesrep_df["Cleaned Customer"].apply(lambda x: fuzz.token_set_ratio(x, cust_name) >= 90)].copy()
 
-        # Mark all matched cleaned customers as used
-        used_customers.update(matches["Cleaned Customer"].tolist())
+            # Mark all matched cleaned customers as used for this salesrep
+            used_customers_for_rep.update(matches["Cleaned Customer"].tolist())
 
         # Check if any matches have rule violations
         # For now, treat "Prospect" values as valid customers, not violations
